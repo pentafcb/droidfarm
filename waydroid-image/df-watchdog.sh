@@ -1,5 +1,5 @@
 #!/bin/bash
-# DroidFarm malfunction handler v7 — runs every minute via cron.
+# Jerusalem 1.0 malfunction handler v7 — runs every minute via cron.
 # Recovers without deleting data: dead containers, stuck boots, dead helper
 # processes (screencap/input/keepalive), stale streams, disk pressure,
 # manager self-check, Roblox client version-pin guard, memory pressure.
@@ -17,7 +17,7 @@
 # fake meminfo), DF_DMESG (fake dmesg executable or file).
 # v4.1: the .degraded marker now carries the human-readable reason on its first
 # line (the manager dashboard reads it to show "needs attention").
-# v5: MANAGER SELF-CHECK. The minute-cron now also probes the droidfarm manager
+# v5: MANAGER SELF-CHECK. The minute-cron now also probes the jerusalem manager
 # itself (http://127.0.0.1:8080/, 2xx/3xx = healthy). A wedged-but-alive manager
 # (deadlock, thread exhaustion) is invisible to systemd — it never restarts it —
 # so 2 consecutive failed probes trigger systemctl start (service down) or
@@ -118,7 +118,7 @@ cb_guard() {
 check_one() {
   local i=$1
   local c="wd-$i"   # separate line: $i must be the local, not the caller's loop variable
-  local base="$VOLBASE/$c-data/_data/data/media/0/droidfarm"
+  local base="$VOLBASE/$c-data/_data/data/media/0/jerusalem"
   local healthy=1 n
   # 1. container running? (2 strikes -> start; circuit-broken at 6 restarts/hour)
   if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$c"; then
@@ -197,7 +197,7 @@ check_one() {
       hk=$(printf '%s' "$s" | tr -c 'a-zA-Z0-9' '_')
       if n=$(cb_guard "$i" "$i.helper-$hk" 600 8 "$s"); then
         log "$i $s dead -> restart (${n}/8 per 10m)"
-        docker exec "$c" nohup waydroid shell sh "/data/media/0/droidfarm/$s" >/dev/null 2>&1 &
+        docker exec "$c" nohup waydroid shell sh "/data/media/0/jerusalem/$s" >/dev/null 2>&1 &
       fi
     fi
   done
@@ -227,7 +227,7 @@ check_one() {
       if n=$(cb_guard "$i" "$i.staleloop" 3600 10 "screencap-loop"); then
         log "$i screencap stale (${age}s) -> restart loop (${n}/10 per hour)"
         docker exec "$c" pkill -f screencap-loop.sh 2>/dev/null
-        docker exec "$c" nohup waydroid shell sh /data/media/0/droidfarm/screencap-loop.sh >/dev/null 2>&1 &
+        docker exec "$c" nohup waydroid shell sh /data/media/0/jerusalem/screencap-loop.sh >/dev/null 2>&1 &
       fi
     fi
   fi
@@ -264,11 +264,11 @@ check_one() {
 # Falls back to rbx1-5 if the state file is unreadable.
 INSTANCES="${DF_INSTANCES:-}"
 if [ -z "$INSTANCES" ]; then
-  if [ -f /root/droidfarm/instances.json ]; then
+  if [ -f /root/jerusalem/instances.json ]; then
     INSTANCES=$(python3 -c "
 import json
 try:
-    d = json.load(open('/root/droidfarm/instances.json'))
+    d = json.load(open('/root/jerusalem/instances.json'))
     print(' '.join(n for n, v in d.items() if isinstance(v, dict) and v.get('provider', 'local') == 'local'))
 except Exception:
     pass" 2>/dev/null)
@@ -309,12 +309,12 @@ else
       _strikes=$(bump "mgr.httpdown")
       if [ "$_strikes" -ge 2 ]; then
         if _n=$(cb_guard "manager" "mgr.restart" 3600 2 "manager service"); then
-          if systemctl is-active --quiet droidfarm 2>/dev/null; then
-            log "manager HTTP $_code twice, service active -> systemctl restart droidfarm (${_n}/2 this hour)"
-            if systemctl restart droidfarm 2>/dev/null; then log "manager restarted ok"; else log "manager restart FAILED"; fi
+          if systemctl is-active --quiet jerusalem 2>/dev/null; then
+            log "manager HTTP $_code twice, service active -> systemctl restart jerusalem (${_n}/2 this hour)"
+            if systemctl restart jerusalem 2>/dev/null; then log "manager restarted ok"; else log "manager restart FAILED"; fi
           else
-            log "manager HTTP $_code twice, service not active -> systemctl start droidfarm (${_n}/2 this hour)"
-            if systemctl start droidfarm 2>/dev/null; then log "manager started ok"; else log "manager start FAILED"; fi
+            log "manager HTTP $_code twice, service not active -> systemctl start jerusalem (${_n}/2 this hour)"
+            if systemctl start jerusalem 2>/dev/null; then log "manager started ok"; else log "manager start FAILED"; fi
           fi
           reset "mgr.httpdown"
         fi
