@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-DroidFarm instance manager + dashboard backend.
+Jerusalem 1.0 instance manager + dashboard backend.
 Stdlib-only (http.server + manual WebSocket). Manages Waydroid-in-Docker
 instances on the host via the docker CLI.
 
 Env:
-  DROIDFARM_PASSWORD  dashboard password (default: changeme - change it!)
-  DROIDFARM_PORT      listen port (default 8080)
-  DROIDFARM_DATA      data dir (default /root/droidfarm)
+  JERUSALEM_PASSWORD  dashboard password (default: changeme - change it!)
+  JERUSALEM_PORT      listen port (default 8080)
+  JERUSALEM_DATA      data dir (default /root/jerusalem)
 """
 import base64
 import hashlib
@@ -34,8 +34,8 @@ try:
 except ImportError:
     HAS_AIORTC = False
 
-DATA_DIR = os.environ.get("DROIDFARM_DATA", "/root/droidfarm")
-PASSWORD = os.environ.get("DROIDFARM_PASSWORD", "changeme")
+DATA_DIR = os.environ.get("JERUSALEM_DATA", "/root/jerusalem")
+PASSWORD = os.environ.get("JERUSALEM_PASSWORD", "changeme")
 
 def check_dashboard_password(pw):
     """Constant-time dashboard password check.
@@ -108,7 +108,7 @@ def clear_login_failures(ip):
             LOGIN_ATTEMPTS.pop(ip, None)
     except Exception:
         pass
-PORT = int(os.environ.get("DROIDFARM_PORT", "8080"))
+PORT = int(os.environ.get("JERUSALEM_PORT", "8080"))
 INSTANCES_FILE = os.path.join(DATA_DIR, "instances.json")
 TOKENS_FILE = os.path.join(DATA_DIR, "tokens.json")
 ACCOUNTS_FILE = os.path.join(DATA_DIR, "roblox_accounts.json")
@@ -121,8 +121,8 @@ IMAGE = "waydroid-instance:latest"
 # Display resolution inside the container (for input scaling)
 DISP_W, DISP_H = 1024, 608
 # Android-side scratch dir (bind-mounted to host path below)
-DROID_SCRATCH = "/data/media/0/droidfarm"
-HOST_SCRATCH = "/root/.local/share/waydroid/data/media/0/droidfarm"
+DROID_SCRATCH = "/data/media/0/jerusalem"
+HOST_SCRATCH = "/root/.local/share/waydroid/data/media/0/jerusalem"
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -834,7 +834,7 @@ def _send_input_cmds(name, cmds):
     `read cmd < $FIFO` (reopening after every line), so separate writes can
     be lost or split. One compound write is atomic for the reader."""
     cname = f"wd-{name}"
-    fifo_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/droidfarm/input.fifo"
+    fifo_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem/input.fifo"
     compound = "; ".join(cmds)
     try:
         fd = os.open(fifo_path, os.O_WRONLY | os.O_NONBLOCK)
@@ -958,7 +958,7 @@ def _roblox_login_inner(name):
     
     # Write password to file via base64 to avoid shell special char issues
     pwd_b64 = base64.b64encode(password.encode()).decode()
-    vol_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/droidfarm"
+    vol_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem"
     try:
         with open(f"{vol_path}/pwd.txt", "wb") as f:
             f.write(base64.b64decode(pwd_b64))
@@ -977,7 +977,7 @@ def _roblox_login_inner(name):
         "sleep 1",
         "input tap 512 296",  # password field
         "sleep 2",
-        'P=$(cat /data/media/0/droidfarm/pwd.txt); input text "$P"',
+        'P=$(cat /data/media/0/jerusalem/pwd.txt); input text "$P"',
         "sleep 2",
         "input tap 512 367",  # Sign In button
     ]
@@ -991,7 +991,7 @@ def _roblox_login_inner(name):
     except OSError:
         return False, "could not write login script"
     
-    rc, out = waydroid_exec(name, "sh /data/media/0/droidfarm/auto_login.sh 2>&1", timeout=60)
+    rc, out = waydroid_exec(name, "sh /data/media/0/jerusalem/auto_login.sh 2>&1", timeout=60)
     # Clean up password file
     try:
         os.remove(f"{vol_path}/pwd.txt")
@@ -1213,9 +1213,9 @@ def capture_screenshot(name):
     """Return JPEG bytes of the instance screen, or None.
     Reads directly from the docker volume (zero exec overhead).
     The container's entrypoint runs a persistent screencap loop writing
-    to /data/media/0/droidfarm/live.png inside the volume."""
+    to /data/media/0/jerusalem/live.png inside the volume."""
     cname = f"wd-{name}"
-    vol_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/droidfarm/live.png"
+    vol_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem/live.png"
     try:
         # Wait briefly for a fresh frame (avoid reading a partially-written file)
         for _ in range(3):
@@ -1505,7 +1505,7 @@ def do_instance_input(name, provider, data):
         return False, {"error": "unknown input type"}
 
     # Write to input FIFO via volume (instant, no waydroid shell startup delay).
-    fifo_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/droidfarm/input.fifo"
+    fifo_path = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem/input.fifo"
     try:
         fd = os.open(fifo_path, os.O_WRONLY | os.O_NONBLOCK)
         try:
@@ -1967,7 +1967,7 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DroidFarm/1.0"
+    server_version = "Jerusalem 1.0/1.0"
 
     def log_message(self, fmt, *args):
         pass  # quiet
@@ -2205,7 +2205,7 @@ class Handler(BaseHTTPRequestHandler):
                 cname = f"wd-{name}"
                 status = container_status(cname)
                 # Fast setup status via marker files (no slow waydroid exec)
-                vol_base = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/droidfarm"
+                vol_base = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem"
                 booted = os.path.exists(os.path.join(vol_base, "booted"))
                 roblox_done = os.path.exists(os.path.join(vol_base, "roblox_done"))
                 if status == "running" and booted and roblox_done:
@@ -2874,13 +2874,13 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     load_tokens()
     if PASSWORD == "changeme":
-        print("WARNING: using default password 'changeme'. Set DROIDFARM_PASSWORD!")
+        print("WARNING: using default password 'changeme'. Set JERUSALEM_PASSWORD!")
     webrtc_init()
     threading.Thread(target=auto_login_watcher, daemon=True,
                      name="auto-login-watcher").start()
     threading.Thread(target=resource_poller, daemon=True,
                      name="resource-poller").start()
-    print(f"DroidFarm manager on :{PORT} (PIL: {HAS_PIL}, WebRTC: {HAS_AIORTC}, H.264: {HAS_H264})")
+    print(f"Jerusalem 1.0 manager on :{PORT} (PIL: {HAS_PIL}, WebRTC: {HAS_AIORTC}, H.264: {HAS_H264})")
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     try:
         server.serve_forever()
