@@ -386,12 +386,12 @@ def instance_status_linux(name):
         pass
     # check multiple possible locations (entrypoint may write to data/ directly)
     booted = any(os.path.exists(os.path.join(base, p)) for p in [
-        "data/media/0/droidfarm/booted",
+        "data/media/0/jerusalem/booted",
         "data/booted",
         "booted",
     ])
     roblox_done = any(os.path.exists(os.path.join(base, p)) for p in [
-        "data/media/0/droidfarm/roblox_done",
+        "data/media/0/jerusalem/roblox_done",
         "data/roblox_done",
         "roblox_done",
     ])
@@ -417,7 +417,7 @@ def screenshot_bytes_linux(name):
     cname = f"wd-{name}"
     base = f"/var/lib/docker/volumes/{cname}-data/_data"
     p = None
-    for rel in ["data/media/0/droidfarm/live.png", "data/live.png", "live.png"]:
+    for rel in ["data/media/0/jerusalem/live.png", "data/live.png", "live.png"]:
         cand = os.path.join(base, rel)
         if os.path.exists(cand):
             p = cand
@@ -458,11 +458,11 @@ def screenshot_bytes_linux(name):
 
 def _find_fifo(cname):
     base = f"/var/lib/docker/volumes/{cname}-data/_data"
-    for rel in ["data/media/0/droidfarm/input.fifo", "data/input.fifo", "input.fifo"]:
+    for rel in ["data/media/0/jerusalem/input.fifo", "data/input.fifo", "input.fifo"]:
         p = os.path.join(base, rel)
         if os.path.exists(p):
             return p
-    return os.path.join(base, "data/media/0/droidfarm/input.fifo")
+    return os.path.join(base, "data/media/0/jerusalem/input.fifo")
 
 
 def input_linux(name, cmd):
@@ -684,7 +684,7 @@ class Handler(BaseHTTPRequestHandler):
 SELF_WATCH_INTERVAL = 60
 SELF_WATCH_DIR = os.path.join(DATA_DIR, "selfwatch")
 _SELF_WATCH_HELPERS = ("screencap-loop.sh", "input-daemon.sh", "roblox-keepalive.sh")
-_SELF_WATCH_DF = "/data/media/0/droidfarm"
+_SELF_WATCH_DF = "/data/media/0/jerusalem"
 
 
 def _sw_log(st_dir, msg):
@@ -830,7 +830,7 @@ def selfwatch_check_instance(name, st_dir=None, vol_base="/var/lib/docker/volume
                     _sw_log(st_dir, "%s %s restart FAILED: %s" % (name, script, (out2 or "")[-120:]))
     # 3. screencap fresh? (stale >30s -> kill + restart loop; cb 10/hour)
     png = os.path.join(vol_base, cname + "-data", "_data",
-                       "data", "media", "0", "droidfarm", "live.png")
+                       "data", "media", "0", "jerusalem", "live.png")
     try:
         age = time.time() - os.path.getmtime(png)
     except Exception:
