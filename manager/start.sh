@@ -1,7 +1,7 @@
 #!/bin/bash
-# Start the DroidFarm manager. Set DROIDFARM_PASSWORD before running.
+# Start the Jerusalem 1.0 manager. Set JERUSALEM_PASSWORD before running.
 DIR="$(cd "$(dirname "$0")" && pwd)"
-export DROIDFARM_DATA="${DROIDFARM_DATA:-/root/droidfarm}"
-export DROIDFARM_PORT="${DROIDFARM_PORT:-8080}"
-mkdir -p "$DROIDFARM_DATA"
+export JERUSALEM_DATA="${JERUSALEM_DATA:-/root/jerusalem}"
+export JERUSALEM_PORT="${JERUSALEM_PORT:-8080}"
+mkdir -p "$JERUSALEM_DATA"
 exec python3 "$DIR/app.py"
