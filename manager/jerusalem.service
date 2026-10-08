@@ -1,0 +1,17 @@
+[Unit]
+Description=Jerusalem 1.0 instance manager
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Environment=JERUSALEM_PASSWORD=changeme
+Environment=JERUSALEM_PORT=8080
+Environment=JERUSALEM_DATA=/root/jerusalem
+WorkingDirectory=/root/jerusalem
+ExecStart=/usr/bin/python3 /root/jerusalem/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
