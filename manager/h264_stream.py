@@ -1,4 +1,4 @@
-"""H.264-over-WebSocket (fMP4 + MSE) stream encoder for DroidFarm.
+"""H.264-over-WebSocket (fMP4 + MSE) stream encoder for Jerusalem 1.0.
 
 Feeds raw RGB frames into an ffmpeg subprocess emitting fragmented MP4.
 Browsers play it via Media Source Extensions — real video compression through
