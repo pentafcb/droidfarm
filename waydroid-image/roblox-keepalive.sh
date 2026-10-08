@@ -26,7 +26,7 @@
 # Test overrides (env, all optional): KA_DIR, KA_MAX_PER_HOUR, KA_BACKOFF_S,
 # KA_TICK_S, KA_LAUNCH_SLEEP, KA_MAX_ITERS (bounds the loop for tests).
 
-KA_DIR="${KA_DIR:-/data/media/0/droidfarm}"
+KA_DIR="${KA_DIR:-/data/media/0/jerusalem}"
 STATE="$KA_DIR/keepalive.state"
 DEGRADED="$KA_DIR/keepalive.degraded"
 MAX_PER_HOUR="${KA_MAX_PER_HOUR:-12}"
