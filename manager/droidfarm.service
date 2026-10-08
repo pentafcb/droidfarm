@@ -1,0 +1,17 @@
+[Unit]
+Description=DroidFarm instance manager
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Environment=DROIDFARM_PASSWORD=changeme
+Environment=DROIDFARM_PORT=8080
+Environment=DROIDFARM_DATA=/root/droidfarm
+WorkingDirectory=/root/droidfarm
+ExecStart=/usr/bin/python3 /root/droidfarm/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
