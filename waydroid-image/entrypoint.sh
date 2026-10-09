@@ -96,11 +96,11 @@ for i in $(seq 1 60); do
 done
 
 if [ "$BOOTED" = "1" ]; then
-    mkdir -p /root/.local/share/waydroid/data/media/0/droidfarm
-    touch /root/.local/share/waydroid/data/media/0/droidfarm/booted
+    mkdir -p /root/.local/share/waydroid/data/media/0/jerusalem
+    touch /root/.local/share/waydroid/data/media/0/jerusalem/booted
     if waydroid shell pm list packages 2>/dev/null | grep -q "com.roblox.client"; then
         echo "[entrypoint] Roblox already installed."
-        touch /root/.local/share/waydroid/data/media/0/droidfarm/roblox_done
+        touch /root/.local/share/waydroid/data/media/0/jerusalem/roblox_done
     else
         echo "[entrypoint] installing Roblox 2.740.931 (split APKs)..."
         if [ -f /opt/roblox-base.apk ] && [ -f /opt/roblox-x86_64.apk ]; then
@@ -109,7 +109,7 @@ if [ "$BOOTED" = "1" ]; then
             cp /opt/roblox-x86_64.apk /root/.local/share/waydroid/data/media/0/apks/
             if waydroid shell pm install /data/media/0/apks/roblox-base.apk /data/media/0/apks/roblox-x86_64.apk 2>&1 | grep -q "Success"; then
                 echo "[entrypoint] Roblox installed successfully."
-                touch /root/.local/share/waydroid/data/media/0/droidfarm/roblox_done
+                touch /root/.local/share/waydroid/data/media/0/jerusalem/roblox_done
             else
                 echo "[entrypoint] WARNING: Roblox install failed."
             fi
@@ -120,21 +120,21 @@ if [ "$BOOTED" = "1" ]; then
     waydroid shell input keyevent 4 2>/dev/null || true
 
     # Start persistent screencap loop for fast dashboard streaming.
-    # Writes to /data/media/0/droidfarm/live.png which the host reads
+    # Writes to /data/media/0/jerusalem/live.png which the host reads
     # directly from the docker volume (no per-frame exec overhead).
     # Uses atomic rename to avoid the dashboard reading a partial file
     # (which causes black flicker).
-    mkdir -p /root/.local/share/waydroid/data/media/0/droidfarm
-    printf '#!/bin/sh\nwhile true; do\n  timeout 5 screencap -p /data/media/0/droidfarm/live.tmp.png 2>/dev/null\n  mv /data/media/0/droidfarm/live.tmp.png /data/media/0/droidfarm/live.png 2>/dev/null\n  sleep 0.12\ndone\n' > /root/.local/share/waydroid/data/media/0/droidfarm/screencap-loop.sh
-    chmod +x /root/.local/share/waydroid/data/media/0/droidfarm/screencap-loop.sh
+    mkdir -p /root/.local/share/waydroid/data/media/0/jerusalem
+    printf '#!/bin/sh\nwhile true; do\n  timeout 5 screencap -p /data/media/0/jerusalem/live.tmp.png 2>/dev/null\n  mv /data/media/0/jerusalem/live.tmp.png /data/media/0/jerusalem/live.png 2>/dev/null\n  sleep 0.12\ndone\n' > /root/.local/share/waydroid/data/media/0/jerusalem/screencap-loop.sh
+    chmod +x /root/.local/share/waydroid/data/media/0/jerusalem/screencap-loop.sh
     # Run in background via single waydroid shell invocation (detached)
-    nohup waydroid shell sh /data/media/0/droidfarm/screencap-loop.sh >/dev/null 2>&1 &
+    nohup waydroid shell sh /data/media/0/jerusalem/screencap-loop.sh >/dev/null 2>&1 &
     echo "[entrypoint] screencap loop started."
     # Input daemon: persistent shell reading commands from FIFO for instant input
     # (avoids 27s waydroid shell startup per tap). API writes to the FIFO via volume.
-    printf '#!/bin/sh\nFIFO=/data/media/0/droidfarm/input.fifo\nrm -f $FIFO\nmkfifo $FIFO\nwhile true; do\n  if read cmd < $FIFO; then\n    eval "$cmd" 2>/dev/null\n  fi\ndone\n' > /root/.local/share/waydroid/data/media/0/droidfarm/input-daemon.sh
-    chmod +x /root/.local/share/waydroid/data/media/0/droidfarm/input-daemon.sh
-    nohup waydroid shell sh /data/media/0/droidfarm/input-daemon.sh >/dev/null 2>&1 &
+    printf '#!/bin/sh\nFIFO=/data/media/0/jerusalem/input.fifo\nrm -f $FIFO\nmkfifo $FIFO\nwhile true; do\n  if read cmd < $FIFO; then\n    eval "$cmd" 2>/dev/null\n  fi\ndone\n' > /root/.local/share/waydroid/data/media/0/jerusalem/input-daemon.sh
+    chmod +x /root/.local/share/waydroid/data/media/0/jerusalem/input-daemon.sh
+    nohup waydroid shell sh /data/media/0/jerusalem/input-daemon.sh >/dev/null 2>&1 &
     echo "[entrypoint] input daemon started."
 
     # Roblox keepalive: force Roblox to always stay in foreground.
@@ -146,22 +146,22 @@ if [ "$BOOTED" = "1" ]; then
     # shared data dir at boot so the watchdog and live-container pushes all
     # use the same file.
     if [ -f /opt/roblox-keepalive.sh ]; then
-        cp -f /opt/roblox-keepalive.sh /root/.local/share/waydroid/data/media/0/droidfarm/roblox-keepalive.sh
+        cp -f /opt/roblox-keepalive.sh /root/.local/share/waydroid/data/media/0/jerusalem/roblox-keepalive.sh
         echo "[entrypoint] Roblox keepalive v2 installed from /opt/roblox-keepalive.sh."
     else
         echo "[entrypoint] WARN /opt/roblox-keepalive.sh missing - legacy inline keepalive (no crash-loop breaker)"
-        printf '#!/bin/sh\nwhile true; do\n  FOCUS=$(dumpsys window 2>/dev/null | grep "mCurrentFocus" | head -1)\n  case "$FOCUS" in\n    *com.roblox.client*) ;;\n    *) input keyevent 3; sleep 1; input swipe 512 400 512 100; sleep 2; input tap 129 424 ;;\n  esac\n  sleep 10\ndone\n' > /root/.local/share/waydroid/data/media/0/droidfarm/roblox-keepalive.sh
+        printf '#!/bin/sh\nwhile true; do\n  FOCUS=$(dumpsys window 2>/dev/null | grep "mCurrentFocus" | head -1)\n  case "$FOCUS" in\n    *com.roblox.client*) ;;\n    *) input keyevent 3; sleep 1; input swipe 512 400 512 100; sleep 2; input tap 129 424 ;;\n  esac\n  sleep 10\ndone\n' > /root/.local/share/waydroid/data/media/0/jerusalem/roblox-keepalive.sh
     fi
-    chmod +x /root/.local/share/waydroid/data/media/0/droidfarm/roblox-keepalive.sh
-    nohup waydroid shell sh /data/media/0/droidfarm/roblox-keepalive.sh >/dev/null 2>&1 &
+    chmod +x /root/.local/share/waydroid/data/media/0/jerusalem/roblox-keepalive.sh
+    nohup waydroid shell sh /data/media/0/jerusalem/roblox-keepalive.sh >/dev/null 2>&1 &
     echo "[entrypoint] Roblox keepalive started."
     # Android OS optimization: debloat, stay-awake, no-doze, cache drop.
     # NOTE: `settings put` is broken in this Waydroid build (AppOps NPE from the
     # root shell), so this uses only commands verified to work: pm, svc, dumpsys.
     # Written to the shared dir so it runs inside Android via waydroid shell.
-    cat > /root/.local/share/waydroid/data/media/0/droidfarm/android-optimize.sh <<'OPT_EOF'
+    cat > /root/.local/share/waydroid/data/media/0/jerusalem/android-optimize.sh <<'OPT_EOF'
 #!/bin/sh
-S=/data/media/0/droidfarm
+S=/data/media/0/jerusalem
 {
 echo "[optimize] run at $(date)"
 # Debloat: disable unused system packages (reversible, user 0 only)
@@ -177,14 +177,29 @@ pm trim-caches 999G >/dev/null 2>&1
 echo "[optimize] done"
 } >> $S/optimize.log 2>&1
 OPT_EOF
-    chmod +x /root/.local/share/waydroid/data/media/0/droidfarm/android-optimize.sh
-    waydroid shell sh /data/media/0/droidfarm/android-optimize.sh >/dev/null 2>&1 &
+    chmod +x /root/.local/share/waydroid/data/media/0/jerusalem/android-optimize.sh
+    waydroid shell sh /data/media/0/jerusalem/android-optimize.sh >/dev/null 2>&1 &
     echo "[entrypoint] Android optimizer started."
     # Launch Roblox immediately (tap sequence; monkey does not work here)
     waydroid shell "input keyevent 3; sleep 1; input swipe 512 400 512 100; sleep 2; input tap 129 424" >/dev/null 2>&1 &
     echo "[entrypoint] Roblox launched."
 else
     echo "[entrypoint] WARNING: Android did not boot in time."
+fi
+
+# Booted-marker watcher: the one-shot boot wait above (5 min) can miss slow
+# boots under load, leaving the dashboard stuck on "booting" forever and the
+# host watchdog restarting healthy containers (stuck-boot check -> restart
+# loop -> DEGRADED). This background loop writes the `booted` marker whenever
+# sys.boot_completed=1 is observed, no matter how late. Idempotent: if the
+# marker is already there it does nothing but file stats.
+# See waydroid-image/booted-watcher.sh.
+if [ -f /opt/booted-watcher.sh ]; then
+    chmod +x /opt/booted-watcher.sh
+    nohup /opt/booted-watcher.sh >/dev/null 2>&1 &
+    echo "[entrypoint] booted-watcher started."
+else
+    echo "[entrypoint] WARN /opt/booted-watcher.sh missing - image predates the watcher (slow boots may never write the booted marker)"
 fi
 
 echo "[entrypoint] ready. Holding container alive."
