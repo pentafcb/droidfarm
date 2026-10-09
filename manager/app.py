@@ -2205,9 +2205,13 @@ class Handler(BaseHTTPRequestHandler):
                 cname = f"wd-{name}"
                 status = container_status(cname)
                 # Fast setup status via marker files (no slow waydroid exec)
-                vol_base = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem"
-                booted = os.path.exists(os.path.join(vol_base, "booted"))
-                roblox_done = os.path.exists(os.path.join(vol_base, "roblox_done"))
+                # Check both jerusalem/ (new) and droidfarm/ (old) for backward compat
+                vol_base_new = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/jerusalem"
+                vol_base_old = f"/var/lib/docker/volumes/{cname}-data/_data/data/media/0/droidfarm"
+                booted = (os.path.exists(os.path.join(vol_base_new, "booted")) or
+                         os.path.exists(os.path.join(vol_base_old, "booted")))
+                roblox_done = (os.path.exists(os.path.join(vol_base_new, "roblox_done")) or
+                              os.path.exists(os.path.join(vol_base_old, "roblox_done")))
                 if status == "running" and booted and roblox_done:
                     setup = "ready"
                 elif status == "running" and booted:
