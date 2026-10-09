@@ -14,6 +14,7 @@ RUN apt-get update && \
 
 COPY entrypoint.sh /entrypoint.sh
 COPY roblox-keepalive.sh /opt/roblox-keepalive.sh
+COPY booted-watcher.sh /opt/booted-watcher.sh
 COPY roblox-base.apk /opt/roblox-base.apk
 COPY roblox-x86_64.apk /opt/roblox-x86_64.apk
 RUN chmod +x /entrypoint.sh
