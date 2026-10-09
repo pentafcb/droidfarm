@@ -1,8 +1,9 @@
 #!/bin/bash
-# Jerusalem 1.0 malfunction handler v7 — runs every minute via cron.
+# Jerusalem 1.0 malfunction handler v10 — runs every minute via cron.
 # Recovers without deleting data: dead containers, stuck boots, dead helper
 # processes (screencap/input/keepalive), stale streams, disk pressure,
-# manager self-check, Roblox client version-pin guard, memory pressure.
+# manager self-check, Roblox client version-pin guard, memory pressure,
+# Docker container-log trimming.
 #
 # v4 adds a CIRCUIT BREAKER: every recovery action is counted in a sliding
 # window, and an instance that keeps failing is marked DEGRADED — auto-recovery
@@ -14,7 +15,9 @@
 #
 # Test overrides (harmless in prod cron): DF_LOG, DF_ST, DF_INSTANCES, DF_VOLBASE,
 # DF_MANAGER_URL, DF_CURL_BIN, DF_PINNED_ROBLOX, DF_PROC_MEMINFO (path to a
-# fake meminfo), DF_DMESG (fake dmesg executable or file).
+# fake meminfo), DF_DMESG (fake dmesg executable or file),
+# DF_LOG_TRIM_MAX / DF_LOG_TRIM_KEEP (section 10 byte thresholds),
+# DF_LOG_GLOB (section 10 log glob, default /var/lib/docker/containers/*/*-json.log).
 # v4.1: the .degraded marker now carries the human-readable reason on its first
 # line (the manager dashboard reads it to show "needs attention").
 # v5: MANAGER SELF-CHECK. The minute-cron now also probes the jerusalem manager
@@ -66,6 +69,19 @@
 #   burned by a known-dead session. Budgeted >4 starts/hour -> DEGRADED
 #   (reason on first line, dashboard badge via instance-health). A 180s
 #   grace after each start attempt covers the Android re-boot window.
+# v10: DOCKER CONTAINER-LOG TRIMMING (section 10). Docker's json-file driver
+#   never rotates container logs by default; each instance container's
+#   *-json.log captures all Waydroid session stdout (LXC/Android boot +
+#   runtime chatter inherited from `waydroid container/session start`) and
+#   can grow to tens of GB — 69G was observed 2026-10-08, starving the disk
+#   and plausibly preventing new Android boots. The v6 disk auto-recovery
+#   can't touch container logs (only dangling images + build cache), so this
+#   section trims any *-json.log over 500MB down to its last 100MB, IN PLACE
+#   (copytruncate: same inode, dockerd's open fd stays valid, logging
+#   continues; writes past the new EOF are sparse holes, so disk usage really
+#   drops). The last 100MB is always kept for failed-boot post-mortems.
+#   Instance data volumes are never touched. Self-limiting: a trimmed log
+#   stays under the threshold until it regrows, so no storm budget is needed.
 PINNED_ROBLOX="${DF_PINNED_ROBLOX:-2.740.931}"
 LOG="${DF_LOG:-/var/log/df-watchdog.log}"
 ST="${DF_ST:-/tmp/df-watchdog}"
@@ -394,4 +410,34 @@ if [ -n "$_oomc" ]; then
   fi
   echo "$_oomc" > "$ST/oom.count"
 fi
+
+# --- SECTION 10: docker container-log trimming ---
+# Docker's json-file driver never rotates container logs by default. Each
+# instance container's *-json.log captures ALL Waydroid session stdout and
+# can grow to tens of GB (69G observed 2026-10-08). Trim in place to the
+# last 100MB (copytruncate keeps the same inode, so dockerd's open fd stays
+# valid and logging continues). Never touches instance data volumes.
+TRIM_MAX="${DF_LOG_TRIM_MAX:-524288000}"
+TRIM_KEEP="${DF_LOG_TRIM_KEEP:-104857600}"
+TRIM_GLOB="${DF_LOG_GLOB:-/var/lib/docker/containers/*/*-json.log}"
+for _jl in $TRIM_GLOB; do
+  [ -f "$_jl" ] || continue
+  _js=$(stat -c%s "$_jl" 2>/dev/null || echo 0)
+  if [ "$_js" -gt "$TRIM_MAX" ]; then
+    _t="$_jl.trim"
+    if tail -c "$TRIM_KEEP" "$_jl" >"$_t" 2>/dev/null && cat "$_t" >"$_jl" 2>/dev/null; then
+      rm -f "$_t" 2>/dev/null
+      _before=$(numfmt --to=iec "$_js" 2>/dev/null || echo "$_js")
+      _after=$(numfmt --to=iec "$TRIM_KEEP" 2>/dev/null || echo "$TRIM_KEEP")
+      log "log-trim: trimmed $(basename "$(dirname "$_jl")") json.log ${_before} -> ${_after} (in-place, fd-safe)"
+      note_event "log.trim" 86400 >/dev/null
+    else
+      log "WARN log-trim: failed to trim $_jl"
+      rm -f "$_t" 2>/dev/null
+    fi
+  fi
+done
+unset _jl _js _t TRIM_MAX TRIM_KEEP TRIM_GLOB
+# --- END SECTION 10 ---
+
 exit 0
