@@ -1,12 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jerusalem 1.0</title>
-<link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" rel="stylesheet">
-<style>
-  :root { --bg:#0f1115; --card:#1a1e26; --line:#2a3040; --txt:#e8ecf4; --dim:#9aa3b5;
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Jerusalem 1.0</title><link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" rel="stylesheet"><style>:root { --bg:#0f1115; --card:#1a1e26; --line:#2a3040; --txt:#e8ecf4; --dim:#9aa3b5;
           --acc:#4f8cff; --ok:#3ddc84; --warn:#ffb020; --bad:#ff5d5d; }
   .setup { display:flex; align-items:center; gap:8px; margin:8px 0; font-size:13px; color:var(--warn); }
   .setup.ready { color:var(--ok); }
@@ -57,12 +49,12 @@
   .loginstat.fail { color:var(--bad); }
   button.sm { padding:6px 10px; font-size:13px; }
   .pbar { height:10px; background:#0c0e12; border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:12px 0 4px; }
-  .pbar > div { height:100%; width:0; background:var(--ok); transition:width .3s; }
+  .pbar >div { height:100%; width:0; background:var(--ok); transition:width .3s; }
   .uhint { font-size:11px; color:var(--dim); margin-top:4px; }
   .ubar { height:6px; background:#0c0e12; border:1px solid var(--line); border-radius:4px; overflow:hidden; margin:2px 0 4px; }
-  .ubar > div { height:100%; width:0; background:var(--ok); }
-  .ubar > div.warm { background:var(--warn); }
-  .ubar > div.hot { background:var(--bad); }
+  .ubar >div { height:100%; width:0; background:var(--ok); }
+  .ubar >div.warm { background:var(--warn); }
+  .ubar >div.hot { background:var(--bad); }
   #err { color:var(--bad); font-size:13px; min-height:18px; margin-top:6px; }
   /* ---- mobile ---- */
   @media (max-width:640px) {
@@ -84,185 +76,10 @@
     button { min-height:40px; }
     i.ri { font-size:18px; }
   }
-</style>
-</head>
-<body>
-<header>
-  <h1>Jerusalem <span>1.0</span></h1>
-  <div id="hostStats" class="hidden" style="font-size:12px;color:var(--dim);display:flex;gap:12px;align-items:center;">
-    <span>CPU <b id="statCpu" style="color:var(--txt)">—</b></span>
-    <span>RAM <b id="statRam" style="color:var(--txt)">—</b></span>
-  </div>
-  <div id="topbar" class="hidden">
-    <button class="ghost" id="btnCreate"><i class="ri-add-line"></i>New instance</button>
-    <button class="ghost" id="btnProviders"><i class="ri-server-line"></i>Nodes</button>
-    <button class="ghost" id="btnLogout"><i class="ri-logout-box-line"></i>Logout</button>
-  </div>
-</header>
-
-<div id="login">
-  <h2 style="margin-top:0">Sign in</h2>
-  <label>Password</label>
-  <input type="password" id="pw" placeholder="Dashboard password" autocomplete="current-password">
-  <button id="btnLogin" style="width:100%;justify-content:center"><i class="ri-login-box-line"></i>Sign in</button>
-  <div id="err"></div>
-</div>
-
-<div id="dash" class="wrap hidden">
-  <div class="fleetbar" id="fleetbar">
-    <span class="fleetlabel">Fleet:</span>
-    <button class="ghost sm" id="btnFleetStart"><i class="ri-play-line"></i>Start all</button>
-    <button class="ghost sm" id="btnFleetStop"><i class="ri-stop-line"></i>Stop all</button>
-    <button class="ghost sm" id="btnFleetRestart"><i class="ri-restart-line"></i>Restart all</button>
-    <button class="ghost sm" id="btnFleetRbx"><i class="ri-gamepad-line"></i>Roblox all</button>
-    <button class="ghost sm" id="btnFleetLogin"><i class="ri-key-line"></i>Login all</button>
-    <button class="ghost sm" id="btnFleetCreate"><i class="ri-add-line"></i>Create fleet</button>
-    <button class="ghost sm" id="btnAccounts"><i class="ri-user-settings-line"></i>Accounts</button>
-    <span class="fleetlabel" id="acctCov"></span>
-    <span class="fleetlabel" id="resCov"></span>
-  </div>
-  <div class="grid" id="grid"></div>
-  <p class="hint" id="emptyHint">No instances yet — create one to get started.</p>
-</div>
-
-<div class="modal" id="fleetModal">
-  <div class="box">
-    <h3 style="margin-top:0" id="fleetTitle">Fleet action</h3>
-    <div class="pbar"><div id="fleetProg"></div></div>
-    <p class="hint" id="fleetStatus">Starting…</p>
-    <div id="fleetFails"></div>
-    <div class="row"><button id="btnFleetClose"><i class="ri-close-line"></i>Close</button></div>
-  </div>
-</div>
-
-<div class="modal" id="acctBulkModal">
-  <div class="box form" style="max-width:520px">
-    <h3 style="margin-top:0">Roblox accounts — bulk import</h3>
-    <p class="hint" id="acctBulkCov">One line per instance:</p>
-    <div id="acctLoginRes" style="font-size:12px; margin:6px 0; max-height:140px; overflow-y:auto;"></div>
-    <p class="hint" style="font-family:monospace">name,username,password[,auto]</p>
-    <textarea id="acctBulkText" rows="8" placeholder="rbx1,player_one,secret123,auto&#10;rbx2,player_two,hunter2" style="width:100%; background:#0f0f1a; border:1px solid #333; color:#fff; border-radius:4px; padding:8px; font-family:monospace;"></textarea>
-    <label style="display:flex; align-items:center; gap:6px; margin:8px 0; font-size:13px;">
-      <input type="checkbox" id="acctBulkAuto"> Enable auto-login on boot for all imported
-    </label>
-    <div class="row">
-      <button id="btnDoAcctBulk"><i class="ri-upload-line"></i>Import</button>
-      <button class="ghost" id="btnCancelAcctBulk"><i class="ri-close-line"></i>Close</button>
-    </div>
-    <div id="acctBulkRes" style="font-size:13px; margin-top:8px;"></div>
-  </div>
-</div>
-
-<div class="modal" id="createModal">
-  <div class="box form">
-    <h3 style="margin-top:0">New instance</h3>
-    <label>Name</label><input id="fName" placeholder="e.g. main">
-    <label>CPUs</label><input id="fCpus" type="number" step="0.5" min="0.5" max="8" value="2">
-    <label>RAM (MB)</label><input id="fRam" type="number" step="512" min="1024" max="16384" value="4096">
-    <label>IP (optional — auto if blank)</label><input id="fIp" placeholder="10.20.0.10">
-    <label>Run on</label>
-    <select id="fProvider"><option value="auto">Auto (least loaded)</option><option value="local">Main node (local)</option></select>
-    <div class="row">
-      <button id="btnDoCreate"><i class="ri-add-line"></i>Create</button>
-      <button class="ghost" id="btnCancelCreate"><i class="ri-close-line"></i>Cancel</button>
-    </div>
-    <div id="cerr"></div>
-  </div>
-</div>
-
-<div class="modal" id="fleetCreateModal">
-  <div class="box form" style="max-width:520px">
-    <h3 style="margin-top:0">Create fleet</h3>
-    <p class="hint">Creates N instances named prefix+number (e.g. rbx21…rbx25), one at a
-      time. Preview the plan first — nothing is created until you confirm.</p>
-    <label>Name prefix</label><input id="fcPrefix" value="rbx" maxlength="24">
-    <label>Count (1–20)</label><input id="fcCount" type="number" min="1" max="20" value="5">
-    <label>RAM per instance (MB)</label><input id="fcRam" type="number" step="512" min="1024" max="16384" value="2048">
-    <label>CPUs per instance</label><input id="fcCpus" type="number" step="0.5" min="0.5" max="8" value="2">
-    <label>Run on</label>
-    <select id="fcProvider"><option value="auto">Auto (least loaded)</option><option value="local">Main node (local)</option></select>
-    <div class="row">
-      <button id="btnFleetPlan"><i class="ri-search-line"></i>Preview plan</button>
-      <button class="ghost" id="btnCancelFleetCreate"><i class="ri-close-line"></i>Cancel</button>
-    </div>
-    <div id="fcPlan" style="font-size:13px; margin-top:8px;"></div>
-    <div class="row" style="margin-top:8px">
-      <button id="btnDoFleetCreate" disabled><i class="ri-add-line"></i>Create fleet</button>
-    </div>
-    <div id="fcErr"></div>
-  </div>
-</div>
-
-<div class="modal" id="provModal">
-  <div class="box form" style="max-width:560px">
-    <h3 style="margin-top:0">Nodes</h3>
-    <p class="hint">Add more machines to run instances. Install is silent — nothing shows on the worker PC.</p>
-    <div id="provList"></div>
-    <div class="row" style="margin-top:12px">
-      <button id="btnAddProv"><i class="ri-add-line"></i>Add node</button>
-      <button class="ghost" id="btnCloseProv"><i class="ri-close-line"></i>Close</button>
-      <button class="ghost" id="btnInstallLog"><i class="ri-file-list-line"></i>Install log</button>
-    </div>
-    <div id="installLogBox" class="hidden" style="margin-top:12px">
-      <label>Installation attempts (live):</label>
-      <div style="margin:4px 0"><button class="ghost" id="btnCopyLogs" style="font-size:11px"><i class="ri-clipboard-line"></i>Copy all logs</button> <button class="ghost" id="btnClearLogs" style="font-size:11px"><i class="ri-delete-bin-line"></i>Clear logs</button></div>
-      <div id="installLogList" style="font-size:11px;max-height:220px;overflow-y:auto"></div>
-    </div>
-    <div id="joinBox" class="hidden" style="margin-top:12px">
-      <label>Linux — run this one command (as root):</label>
-      <div class="row"><input id="joinSh" readonly style="flex:1;font-size:11px"><button class="ghost" id="copySh"><i class="ri-clipboard-line"></i>Copy</button></div>
-      <label style="margin-top:8px">Windows — run in PowerShell:</label>
-      <div class="row"><input id="joinBat" readonly style="flex:1;font-size:11px"><button class="ghost" id="copyBat"><i class="ri-clipboard-line"></i>Copy</button></div>
-      <label style="margin-top:8px">Windows — run in CMD:</label>
-      <div class="row"><input id="joinCmd" readonly style="flex:1;font-size:11px"><button class="ghost" id="copyCmd"><i class="ri-clipboard-line"></i>Copy</button></div>
-      <p class="hint">Static token — never expires. The worker installs silently in the background and appears below. <a href="#" id="regenToken" style="color:#888">Regenerate token</a></p>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="provInfoModal">
-  <div class="box form" style="max-width:420px">
-    <h3 style="margin-top:0" id="piTitle">Node info</h3>
-    <div id="piBody" style="font-size:13px;line-height:1.7"></div>
-    <div class="row" style="margin-top:12px">
-      <button class="ghost" id="btnClosePi"><i class="ri-close-line"></i>Close</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="viewer">
-  <div class="box">
-    <h3 style="margin-top:0" id="vTitle">Instance</h3>
-    <div id="screenWrap"><video id="screenVideo" autoplay muted playsinline style="display:none"></video><img id="screenImg" alt="screen" style="display:none"></div>
-    <div class="vrow">
-      <button class="ghost" data-key="BACK"><i class="ri-arrow-left-line"></i>Back</button>
-      <button class="ghost" data-key="HOME"><i class="ri-home-line"></i>Home</button>
-      <button class="ghost" data-key="APP_SWITCH"><i class="ri-apps-line"></i>Recent</button>
-      <button class="ghost" id="btnRbx"><i class="ri-gamepad-line"></i>Launch Roblox</button>
-      <button class="ghost" id="btnLogin"><i class="ri-login-circle-line"></i>Login</button>
-      <button class="ghost" id="btnAcct"><i class="ri-user-settings-line"></i>Account</button>
-      <button class="ghost" id="btnCloseViewer"><i class="ri-close-line"></i>Close</button>
-    </div>
-    <p class="hint">Click the screen to tap. Roblox installs automatically when the instance is created.</p>
-    <p class="hint" id="rbxState"></p>
-    <div id="acctPanel" style="display:none; margin-top:10px; padding:10px; background:#1a1a2e; border-radius:8px;">
-      <h4 style="margin:0 0 8px 0;">Roblox Account for <span id="acctName"></span></h4>
-      <input id="acctUser" placeholder="Username" style="width:100%; margin-bottom:6px; padding:6px; background:#0f0f1a; border:1px solid #333; color:#fff; border-radius:4px;">
-      <input id="acctPass" type="password" placeholder="Password" style="width:100%; margin-bottom:6px; padding:6px; background:#0f0f1a; border:1px solid #333; color:#fff; border-radius:4px;">
-      <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:13px;">
-        <input type="checkbox" id="acctAuto"> Auto-login on boot
-      </label>
-      <div style="display:flex; gap:6px;">
-        <button class="ghost" id="btnSaveAcct" style="flex:1;">Save</button>
-        <button class="ghost" id="btnClearAcct" style="flex:1;">Clear</button>
-      </div>
-      <p class="hint" id="acctMsg" style="margin:6px 0 0 0;"></p>
-    </div>
-  </div>
-</div>
-
-<script>
-const $ = id => document.getElementById(id);
+</style></head><body><header><h1>Jerusalem <span>1.0</span></h1><div id="hostStats" class="hidden" style="font-size:12px;color:var(--dim);display:flex;gap:12px;align-items:center;"><span>CPU <b id="statCpu" style="color:var(--txt)">—</b></span><span>RAM <b id="statRam" style="color:var(--txt)">—</b></span></div><div id="topbar" class="hidden"><button class="ghost" id="btnCreate"><i class="ri-add-line"></i>Nueva instancia</button><button class="ghost" id="btnProviders"><i class="ri-server-line"></i>Nodos</button><button class="ghost" id="btnLogout"><i class="ri-logout-box-line"></i>Cerrar sesión</button></div></header><div id="login"><h2 style="margin-top:0">Iniciar sesión</h2><label>Contraseña</label><input type="password" id="pw" placeholder="Contraseña del panel" autocomplete="current-password"><button id="btnLogin" style="width:100%;justify-content:center"><i class="ri-login-box-line"></i>Entrar</button><div id="err"></div></div><div id="dash" class="wrap hidden"><div class="fleetbar" id="fleetbar"><span class="fleetlabel">Flota:</span><button class="ghost sm" id="btnFleetStart"><i class="ri-play-line"></i>Iniciar todas</button><button class="ghost sm" id="btnFleetStop"><i class="ri-stop-line"></i>Detener todas</button><button class="ghost sm" id="btnFleetRestart"><i class="ri-restart-line"></i>Reiniciar todas</button><button class="ghost sm" id="btnFleetRbx"><i class="ri-gamepad-line"></i>Roblox en todas</button><button class="ghost sm" id="btnFleetLogin"><i class="ri-key-line"></i>Entrar en todas</button><button class="ghost sm" id="btnFleetCreate"><i class="ri-add-line"></i>Crear flota</button><button class="ghost sm" id="btnAccounts"><i class="ri-user-settings-line"></i>Cuentas</button><span class="fleetlabel" id="acctCov"></span><span class="fleetlabel" id="resCov"></span></div><div class="grid" id="grid"></div><p class="hint" id="emptyHint">Sin instancias todavía — crea una para empezar.</p></div><div class="modal" id="fleetModal"><div class="box"><h3 style="margin-top:0" id="fleetTitle">Acción de flota</h3><div class="pbar"><div id="fleetProg"></div></div><p class="hint" id="fleetStatus">Iniciando…</p><div id="fleetFails"></div><div class="row"><button id="btnFleetClose"><i class="ri-close-line"></i>Cerrar</button></div></div></div><div class="modal" id="acctBulkModal"><div class="box form" style="max-width:520px"><h3 style="margin-top:0">Cuentas de Roblox — importación masiva</h3><p class="hint" id="acctBulkCov">Una línea por instancia:</p><div id="acctLoginRes" style="font-size:12px; margin:6px 0; max-height:140px; overflow-y:auto;"></div><p class="hint" style="font-family:monospace">name,username,password[,auto]</p><textarea id="acctBulkText" rows="8" placeholder="rbx1,player_one,secret123,auto&#10;rbx2,player_two,hunter2" style="width:100%; background:#0f0f1a; border:1px solid #333; color:#fff; border-radius:4px; padding:8px; font-family:monospace;"></textarea><label style="display:flex; align-items:center; gap:6px; margin:8px 0; font-size:13px;"><input type="checkbox" id="acctBulkAuto">Entrar automáticamente al arrancar (todas las importadas)
+    </label><div class="row"><button id="btnDoAcctBulk"><i class="ri-upload-line"></i>Importar</button><button class="ghost" id="btnCancelAcctBulk"><i class="ri-close-line"></i>Cerrar</button></div><div id="acctBulkRes" style="font-size:13px; margin-top:8px;"></div></div></div><div class="modal" id="createModal"><div class="box form"><h3 style="margin-top:0">Nueva instancia</h3><label>Nombre</label><input id="fName" placeholder="p. ej. main"><label>CPUs</label><input id="fCpus" type="number" step="0.5" min="0.5" max="8" value="2"><label>RAM (MB)</label><input id="fRam" type="number" step="512" min="1024" max="16384" value="4096"><label>IP (opcional — automática si se deja en blanco)</label><input id="fIp" placeholder="10.20.0.10"><label>Ejecutar en</label><select id="fProvider"><option value="auto">Automático (menos cargado)</option><option value="local">Nodo principal (local)</option></select><div class="row"><button id="btnDoCreate"><i class="ri-add-line"></i>Crear</button><button class="ghost" id="btnCancelCreate"><i class="ri-close-line"></i>Cancelar</button></div><div id="cerr"></div></div></div><div class="modal" id="fleetCreateModal"><div class="box form" style="max-width:520px"><h3 style="margin-top:0">Crear flota</h3><p class="hint">Crea N instancias llamadas prefijo+número (p. ej. rbx21…rbx25), una a la
+      vez. Revisa el plan primero — no se crea nada hasta que confirmes.</p><label>Prefijo del nombre</label><input id="fcPrefix" value="rbx" maxlength="24"><label>Cantidad (1–20)</label><input id="fcCount" type="number" min="1" max="20" value="5"><label>RAM por instancia (MB)</label><input id="fcRam" type="number" step="512" min="1024" max="16384" value="2048"><label>CPUs por instancia</label><input id="fcCpus" type="number" step="0.5" min="0.5" max="8" value="2"><label>Ejecutar en</label><select id="fcProvider"><option value="auto">Automático (menos cargado)</option><option value="local">Nodo principal (local)</option></select><div class="row"><button id="btnFleetPlan"><i class="ri-search-line"></i>Ver plan</button><button class="ghost" id="btnCancelFleetCreate"><i class="ri-close-line"></i>Cancelar</button></div><div id="fcPlan" style="font-size:13px; margin-top:8px;"></div><div class="row" style="margin-top:8px"><button id="btnDoFleetCreate" disabled><i class="ri-add-line"></i>Crear flota</button></div><div id="fcErr"></div></div></div><div class="modal" id="provModal"><div class="box form" style="max-width:560px"><h3 style="margin-top:0">Nodos</h3><p class="hint">Agrega más máquinas para ejecutar instancias. La instalación es silenciosa — no se muestra nada en la PC.</p><div id="provList"></div><div class="row" style="margin-top:12px"><button id="btnAddProv"><i class="ri-add-line"></i>Agregar nodo</button><button class="ghost" id="btnCloseProv"><i class="ri-close-line"></i>Cerrar</button><button class="ghost" id="btnInstallLog"><i class="ri-file-list-line"></i>Registro de instalación</button></div><div id="installLogBox" class="hidden" style="margin-top:12px"><label>Intentos de instalación (en vivo):</label><div style="margin:4px 0"><button class="ghost" id="btnCopyLogs" style="font-size:11px"><i class="ri-clipboard-line"></i>Copiar registros</button><button class="ghost" id="btnClearLogs" style="font-size:11px"><i class="ri-delete-bin-line"></i>Borrar registros</button></div><div id="installLogList" style="font-size:11px;max-height:220px;overflow-y:auto"></div></div><div id="joinBox" class="hidden" style="margin-top:12px"><label>Linux — ejecuta este único comando (como root):</label><div class="row"><input id="joinSh" readonly style="flex:1;font-size:11px"><button class="ghost" id="copySh"><i class="ri-clipboard-line"></i>Copiar</button></div><label style="margin-top:8px">Windows — ejecuta en PowerShell:</label><div class="row"><input id="joinBat" readonly style="flex:1;font-size:11px"><button class="ghost" id="copyBat"><i class="ri-clipboard-line"></i>Copiar</button></div><label style="margin-top:8px">Windows — ejecuta en CMD:</label><div class="row"><input id="joinCmd" readonly style="flex:1;font-size:11px"><button class="ghost" id="copyCmd"><i class="ri-clipboard-line"></i>Copiar</button></div><p class="hint">Token fijo — nunca expira. Se instala en silencio en segundo plano y aparece abajo. <a href="#" id="regenToken" style="color:#888">Regenerar token</a></p></div></div></div><div class="modal" id="provInfoModal"><div class="box form" style="max-width:420px"><h3 style="margin-top:0" id="piTitle">ℹ Info del nodo</h3><div id="piBody" style="font-size:13px;line-height:1.7"></div><div class="row" style="margin-top:12px"><button class="ghost" id="btnClosePi"><i class="ri-close-line"></i>Cerrar</button></div></div></div><div class="modal" id="viewer"><div class="box"><h3 style="margin-top:0" id="vTitle">Instancia</h3><div id="screenWrap"><video id="screenVideo" autoplay muted playsinline style="display:none"></video><img id="screenImg" alt="screen" style="display:none"></div><div class="vrow"><button class="ghost" data-key="BACK"><i class="ri-arrow-left-line"></i>Atrás</button><button class="ghost" data-key="HOME"><i class="ri-home-line"></i>Inicio</button><button class="ghost" data-key="APP_SWITCH"><i class="ri-apps-line"></i>Recientes</button><button class="ghost" id="btnRbx"><i class="ri-gamepad-line"></i>Abrir Roblox</button><button class="ghost" id="btnLogin"><i class="ri-login-circle-line"></i>Entrar</button><button class="ghost" id="btnAcct"><i class="ri-user-settings-line"></i>Cuenta</button><button class="ghost" id="btnCloseViewer"><i class="ri-close-line"></i>Cerrar</button></div><p class="hint">Toca la pantalla para hacer clic. Roblox se instala solo cuando se crea la instancia.</p><p class="hint" id="rbxState"></p><div id="acctPanel" style="display:none; margin-top:10px; padding:10px; background:#1a1a2e; border-radius:8px;"><h4 style="margin:0 0 8px 0;">Cuenta de Roblox para <span id="acctName"></span></h4><input id="acctUser" placeholder=" Usuario" style="width:100%; margin-bottom:6px; padding:6px; background:#0f0f1a; border:1px solid #333; color:#fff; border-radius:4px;"><input id="acctPass" type="password" placeholder=" Contraseña" style="width:100%; margin-bottom:6px; padding:6px; background:#0f0f1a; border:1px solid #333; color:#fff; border-radius:4px;"><label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:13px;"><input type="checkbox" id="acctAuto">Entrar automáticamente al arrancar
+      </label><div style="display:flex; gap:6px;"><button class="ghost" id="btnSaveAcct" style="flex:1;">Guardar</button><button class="ghost" id="btnClearAcct" style="flex:1;">Borrar</button></div><p class="hint" id="acctMsg" style="margin:6px 0 0 0;"></p></div></div></div><script>const $ = id =>document.getElementById(id);
 // Token persistence: localStorage, with sessionStorage + in-memory fallback.
 // (localStorage.setItem can throw in iOS private mode or when the quota is
 // exhausted — without the fallback a successful login would look broken.)
@@ -279,7 +96,7 @@ let token = loadToken();
 
 function api(path, opts={}) {
   opts.headers = Object.assign({}, opts.headers, {'Authorization':'Bearer '+token, 'Content-Type':'application/json'});
-  return fetch(path, opts).then(async r => {
+  return fetch(path, opts).then(async r =>{
     if (r.status === 401) { logout(); throw new Error('unauthorized'); }
     const j = await r.json().catch(()=>({}));
     if (!r.ok) throw new Error(j.error || j.msg || ('HTTP '+r.status));
@@ -296,9 +113,9 @@ function logout(){
 function updateResCov(fr) {
   const el = $('resCov');
   if (!fr || !fr.host_mem_mb) { el.textContent = ''; return; }
-  el.textContent = 'Fleet RAM ' + (fr.mem_used_mb/1024).toFixed(1) + '/' +
+  el.textContent = ' RAM de flota ' + (fr.mem_used_mb/1024).toFixed(1) + '/' +
     (fr.host_mem_mb/1024).toFixed(0) + ' GB · CPU ' + Math.round(fr.cpu_pct) +
-    '% (' + fr.instances_seen + ' reporting)';
+    '% (' + fr.instances_seen + ' reportando)';
 }
 async function refresh() {
   try {
@@ -308,21 +125,21 @@ async function refresh() {
     updateResCov(j.fleet_resources);
     const g = $('grid'); g.innerHTML = '';
     $('emptyHint').style.display = instances.length ? 'none' : 'block';
-    instances.forEach(i => {
+    instances.forEach(i =>{
       const d = document.createElement('div'); d.className='card';
       // Setup progress indicator
       let setupBadge = '';
-      if (i.degraded) setupBadge = `<div class="setup degraded" title="${esc(i.degraded_reason||'')}"><i class="ri-alert-line"></i>Needs attention — auto-recovery paused</div>`;
-      else if (i.setup === 'booting') setupBadge = '<div class="setup"><span class="spinner"></span> Booting Android…</div>';
-      else if (i.setup === 'installing_roblox') setupBadge = '<div class="setup"><span class="spinner"></span> Installing Roblox…</div>';
-      else if (i.setup === 'ready') setupBadge = '<div class="setup ready"><i class="ri-check-line"></i>Ready</div>';
+      if (i.degraded) setupBadge = `<div class="setup degraded" title="${esc(i.degraded_reason||'')}"><i class="ri-alert-line"></i>Necesita atención — recuperación automática pausada</div>`;
+      else if (i.setup === 'booting') setupBadge = '<div class="setup"><span class="spinner"></span>Iniciando Android…</div>';
+      else if (i.setup === 'installing_roblox') setupBadge = '<div class="setup"><span class="spinner"></span>Instalando Roblox…</div>';
+      else if (i.setup === 'ready') setupBadge = '<div class="setup ready"><i class="ri-check-line"></i>Lista</div>';
       // Last Roblox login outcome for this instance (recorded by manager)
       let loginStat = '';
       if (i.login_ts) {
         const when = new Date(i.login_ts*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         loginStat = i.login_ok
-          ? `<div class="loginstat ok" title="Roblox login succeeded (${esc(i.login_by||'manual')} · ${when})">✓ Roblox login OK</div>`
-          : `<div class="loginstat fail" title="Last Roblox login attempt failed — check the Accounts panel for the reason">⚠ Roblox login failed (${esc(i.login_by||'manual')} · ${when})</div>`;
+          ? `<div class="loginstat ok" title="Roblox: sesión iniciada (${esc(i.login_by||'manual')} · ${when})">Roblox: sesión iniciada</div>`
+          : `<div class="loginstat fail" title="El último inicio de sesión de Roblox falló — revisa el panel de Cuentas">Roblox: falló el inicio (${esc(i.login_by||'manual')} · ${when})</div>`;
       }
       // Live resource usage (main-node poller / node agent on remote nodes;
       // absent until the first poll)
@@ -330,33 +147,28 @@ async function refresh() {
       if (i.mem_used_mb != null && i.memory_mb) {
         const pct = Math.min(100, Math.round(i.mem_used_mb / i.memory_mb * 100));
         const cls = pct >= 90 ? 'hot' : pct >= 70 ? 'warm' : '';
-        usageHtml = `<div class="uhint">Using ${Math.round(i.mem_used_mb)}/${i.memory_mb} MB · CPU ${Math.round(i.cpu_pct)}%</div>` +
+        usageHtml = `<div class="uhint">Usando ${Math.round(i.mem_used_mb)}/${i.memory_mb} MB · CPU ${Math.round(i.cpu_pct)}%</div>` +
           `<div class="ubar"><div class="${cls}" style="width:${pct}%"></div></div>`;
       }
-      d.innerHTML = `<h3><span class="dot ${i.status}"></span>${i.name}</h3>
-        <div class="meta">IP: ${i.ip||'—'}<br>CPU: ${i.cpus} · RAM: ${i.memory_mb} MB<br>Status: ${i.status}<br><span style="color:var(--dim)"><i class="ri-server-line"></i>${esc(i.provider_name||i.provider||'local')}</span></div>
-        ${usageHtml}
+      d.innerHTML = `<h3><span class="dot ${i.status}"></span>${i.name}</h3><div class="meta">IP: ${i.ip||'—'}<br>CPU: ${i.cpus} ·  RAM: ${i.memory_mb} MB<br>Estado: ${i.status}<br><span style="color:var(--dim)"><i class="ri-server-line"></i>${esc(i.provider_name||i.provider||'local')}</span></div>${usageHtml}
         ${setupBadge}
         ${loginStat}
-        <div class="row">
-          <button data-act="view"${i.setup!=='ready'?' disabled':''}><i class="ri-eye-line"></i>View</button>
-          ${i.status==='running'
-            ? `<button class="ghost" data-act="stop"><i class="ri-stop-line"></i>Stop</button>`
-            : `<button class="ghost" data-act="start"><i class="ri-play-line"></i>Start</button>`}
-          <button class="danger" data-act="del"><i class="ri-delete-bin-line"></i>Delete</button>
-        </div>`;
-      d.querySelectorAll('button').forEach(b => b.onclick = () => act(i.name, b.dataset.act));
+        <div class="row"><button data-act="view"${i.setup!=='ready'?' disabled':''}><i class="ri-eye-line"></i>Ver</button>${i.status==='running'
+            ? `<button class="ghost" data-act="stop"><i class="ri-stop-line"></i>Detener</button>`
+            : `<button class="ghost" data-act="start"><i class="ri-play-line"></i>Iniciar</button>`}
+          <button class="danger" data-act="del"><i class="ri-delete-bin-line"></i>Eliminar</button></div>`;
+      d.querySelectorAll('button').forEach(b =>b.onclick = () =>act(i.name, b.dataset.act));
       g.appendChild(d);
     });
     // Auto-refresh while any instance is still setting up or needs attention
     // (degraded auto-clears when the watchdog sees all green again)
-    if (instances.some(i => i.setup==='booting' || i.setup==='installing_roblox' || i.degraded)) {
+    if (instances.some(i =>i.setup==='booting' || i.setup==='installing_roblox' || i.degraded)) {
       setTimeout(refresh, 5000);
     }
   } catch(e){ /* keep old */ }
 }
 async function act(name, a){
-  if (a==='del' && !confirm(`Delete instance "${name}"? This removes its data.`)) return;
+  if (a==='del' && !confirm(`¿Eliminar la instancia "${name}"? Se borrarán sus datos.`)) return;
   if (a==='view') return openViewer(name);
   try {
     if (a==='del') await api(`/api/instances/${name}`, {method:'DELETE'});
@@ -370,7 +182,7 @@ let pc = null, dc = null, viewName = '';
 function openViewer(name){
   // Close any existing connection first
   closeViewer();
-  viewName = name; $('vTitle').textContent = 'Instance: '+name; $('rbxState').textContent='';
+  viewName = name; $('vTitle').textContent = ' Instancia: '+name; $('rbxState').textContent='';
   $('viewer').classList.add('open');
   startWebRTC(name);
   checkRbx();
@@ -380,8 +192,8 @@ async function startWebRTC(name){
   const myPc = pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
   let connected = false;
   try {
-    // Video track -> <video> element
-    pc.ontrack = ev => {
+    // Video track -><video>element
+    pc.ontrack = ev =>{
       if (myPc !== pc) return;
       const v = $('screenVideo');
       v.style.display = 'block';
@@ -391,17 +203,17 @@ async function startWebRTC(name){
     };
     // Data channel for input (faster than HTTP)
     dc = pc.createDataChannel('input');
-    dc.onopen = () => { if (myPc === pc) { connected = true; $('rbxState').textContent = 'Live (WebRTC)'; } };
-    dc.onclose = () => {};
+    dc.onopen = () =>{ if (myPc === pc) { connected = true; $('rbxState').textContent = ' En vivo (WebRTC)'; } };
+    dc.onclose = () =>{};
     pc.addTransceiver('video', {direction:'recvonly'});
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     // Wait for ICE gathering so the offer carries our candidates (host +
     // STUN reflexive). Without this the server gets zero client candidates
     // and ICE can never connect.
-    await new Promise((resolve) => {
+    await new Promise((resolve) =>{
       if (myPc !== pc || pc.iceGatheringState === 'complete') return resolve();
-      const done = () => {
+      const done = () =>{
         pc.removeEventListener('icegatheringstatechange', done);
         resolve();
       };
@@ -415,9 +227,9 @@ async function startWebRTC(name){
     if (myPc !== pc) return;
     await pc.setRemoteDescription(new RTCSessionDescription(resp));
     // Wait for connection (8s timeout), else fall back to MJPEG
-    await new Promise((res, rej) => {
-      const to = setTimeout(() => rej(new Error('timeout')), 8000);
-      const check = () => {
+    await new Promise((res, rej) =>{
+      const to = setTimeout(() =>rej(new Error('timeout')), 8000);
+      const check = () =>{
         if (myPc !== pc) { clearTimeout(to); rej(new Error('closed')); }
         else if (connected) { clearTimeout(to); res(); }
         else if (pc.connectionState === 'failed') { clearTimeout(to); rej(new Error('ICE failed')); }
@@ -446,7 +258,7 @@ function startMJPEG(name){
   const img = $('screenImg');
   img.style.display = 'block';
   $('screenVideo').style.display = 'none';
-  mjpegWs.onmessage = ev => {
+  mjpegWs.onmessage = ev =>{
     if (myWs !== mjpegWs) return;
     const blob = new Blob([ev.data], {type:'image/jpeg'});
     const url = URL.createObjectURL(blob);
@@ -454,7 +266,7 @@ function startMJPEG(name){
     img.src = url;
     if (old.startsWith('blob:')) URL.revokeObjectURL(old);
   };
-  mjpegWs.onclose = () => {
+  mjpegWs.onclose = () =>{
     if (myWs === mjpegWs) setTimeout(()=>{ if (myWs === mjpegWs) startMJPEG(name); }, 3000);
   };
 }
@@ -480,7 +292,7 @@ function stopH264(){
 }
 function h264Fail(name){
   stopH264();
-  $('rbxState').textContent = 'Live (MJPEG)';
+  $('rbxState').textContent = ' En vivo (MJPEG)';
   startMJPEG(name);
 }
 function startH264(name){
@@ -500,35 +312,35 @@ function startH264(name){
     try { h264Sb.appendBuffer(queue.shift()); }
     catch(e){ h264Fail(name); }
   }
-  h264Ms.addEventListener('sourceopen', () => {
+  h264Ms.addEventListener('sourceopen', () =>{
     if (h264Ms !== myMs || h264Ws !== ws) return;
     try {
       h264Sb = h264Ms.addSourceBuffer('video/mp4; codecs="avc1.42C015"');
     } catch(e){ h264Fail(name); return; }
     h264Sb.addEventListener('updateend', pump);
-    h264Sb.addEventListener('error', () => h264Fail(name));
+    h264Sb.addEventListener('error', () =>h264Fail(name));
     pump();
     // keep the buffer small: drop played-out ranges
-    h264Cleaner = setInterval(() => {
+    h264Cleaner = setInterval(() =>{
       try {
         if (h264Sb && !h264Sb.updating && h264Sb.buffered.length) {
           const end = h264Sb.buffered.end(h264Sb.buffered.length - 1);
-          if (end > 12) h264Sb.remove(0, end - 10);
+          if (end >12) h264Sb.remove(0, end - 10);
         }
       } catch(e){}
     }, 5000);
   });
-  ws.onmessage = ev => {
+  ws.onmessage = ev =>{
     if (h264Ws !== ws) return;
     queue.push(new Uint8Array(ev.data));
     pump();
   };
-  ws.onopen = () => {
+  ws.onopen = () =>{
     if (h264Ws !== ws) return;
-    $('rbxState').textContent = 'Live (H.264)';
+    $('rbxState').textContent = ' En vivo (H.264)';
   };
-  ws.onerror = () => { if (h264Ws === ws) h264Fail(name); };
-  ws.onclose = () => { if (h264Ws === ws) h264Fail(name); };
+  ws.onerror = () =>{ if (h264Ws === ws) h264Fail(name); };
+  ws.onclose = () =>{ if (h264Ws === ws) h264Fail(name); };
 }
 function closeViewer(){
   stopH264();
@@ -546,7 +358,7 @@ $('btnCloseViewer').onclick = closeViewer;
 (function(){
   let startX=0, startY=0, startT=0, tracking=false;
   // Use whichever is visible (WebRTC video or MJPEG img)
-  const scr = () => $('screenVideo').style.display !== 'none' ? $('screenVideo') : $('screenImg');
+  const scr = () =>$('screenVideo').style.display !== 'none' ? $('screenVideo') : $('screenImg');
   const wrap = $('screenWrap');
   // Send input via WebRTC data channel if open, else HTTP fallback
   function sendInput(obj){
@@ -589,28 +401,28 @@ $('btnCloseViewer').onclick = closeViewer;
   }
   // Attach to both video and img (whichever is visible)
   // Use touch events with preventDefault to block iOS emulated mouse events
-  ['screenVideo','screenImg'].forEach(id => {
+  ['screenVideo','screenImg'].forEach(id =>{
     const el = $(id);
-    el.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
-    el.addEventListener('mouseup', e => onEnd(e.clientX, e.clientY));
-    el.addEventListener('touchstart', e => { e.preventDefault(); const t=e.changedTouches[0]; onStart(t.clientX, t.clientY); }, {passive:false});
-    el.addEventListener('touchend', e => { e.preventDefault(); const t=e.changedTouches[0]; onEnd(t.clientX, t.clientY); });
+    el.addEventListener('mousedown', e =>onStart(e.clientX, e.clientY));
+    el.addEventListener('mouseup', e =>onEnd(e.clientX, e.clientY));
+    el.addEventListener('touchstart', e =>{ e.preventDefault(); const t=e.changedTouches[0]; onStart(t.clientX, t.clientY); }, {passive:false});
+    el.addEventListener('touchend', e =>{ e.preventDefault(); const t=e.changedTouches[0]; onEnd(t.clientX, t.clientY); });
   });
   // Prevent the old click handler from double-firing (removed below)
 })();
-document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => {
+document.querySelectorAll('[data-key]').forEach(b =>b.onclick = () =>{
   sendInput({type:'key', key:b.dataset.key});
 });
 async function checkRbx(){
-  $('rbxState').textContent = 'Launching Roblox…';
+  $('rbxState').textContent = ' Abriendo Roblox…';
   try { const r = await api(`/api/instances/${viewName}/launch-roblox`, {method:'POST'});
-        $('rbxState').textContent = r.ok ? 'Roblox launched' : 'Could not launch Roblox'; }
-  catch(e){ $('rbxState').textContent = 'Roblox not installed yet (installs automatically after boot)'; }
+        $('rbxState').textContent = r.ok ? ' Roblox abierto' : ' No se pudo abrir Roblox'; }
+  catch(e){ $('rbxState').textContent = ' Roblox aún no instalado (se instala solo después del arranque)'; }
 }
 $('btnRbx').onclick = checkRbx;
 
 // Roblox account panel
-$('btnAcct').onclick = async () => {
+$('btnAcct').onclick = async () =>{
   const p = $('acctPanel');
   const open = p.style.display !== 'none';
   p.style.display = open ? 'none' : 'block';
@@ -620,7 +432,7 @@ $('btnAcct').onclick = async () => {
       const r = await api(`/api/instances/${viewName}/roblox-account`);
       $('acctUser').value = r.username || '';
       $('acctPass').value = '';
-      $('acctPass').placeholder = r.has_password ? 'Password saved (enter new to change)' : 'Password';
+      $('acctPass').placeholder = r.has_password ? ' Contraseña guardada (escribe una nueva para cambiarla)' : ' Contraseña';
       $('acctAuto').checked = !!r.auto_login;
       $('acctMsg').textContent = '';
       try {
@@ -628,46 +440,46 @@ $('btnAcct').onclick = async () => {
         if (lr.result) {
           const when = new Date(lr.result.ts*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
           $('acctMsg').textContent = lr.result.ok
-            ? `Last login OK (${when}, ${lr.result.by||'manual'})`
-            : `Last login failed: ${lr.result.reason||'unknown'} (${lr.result.by||'manual'})`;
+            ? `Último inicio OK (${when}, ${lr.result.by||'manual'})`
+            : `Último inicio falló: ${lr.result.reason||'unknown'} (${lr.result.by||'manual'})`;
         }
       } catch(e){ /* result lookup is optional */ }
-    } catch(e){ $('acctMsg').textContent = 'Could not load account'; }
+    } catch(e){ $('acctMsg').textContent = ' No se pudo cargar la cuenta'; }
   }
 };
-$('btnSaveAcct').onclick = async () => {
+$('btnSaveAcct').onclick = async () =>{
   const body = { username: $('acctUser').value.trim(), auto_login: $('acctAuto').checked };
   if ($('acctPass').value) body.password = $('acctPass').value;
   try {
     await api(`/api/instances/${viewName}/roblox-account`, {method:'POST', body: JSON.stringify(body)});
-    $('acctMsg').textContent = 'Saved.';
+    $('acctMsg').textContent = ' Guardado.';
     $('acctPass').value = '';
-  } catch(e){ $('acctMsg').textContent = 'Save failed'; }
+  } catch(e){ $('acctMsg').textContent = ' No se pudo guardar'; }
 };
-$('btnClearAcct').onclick = async () => {
+$('btnClearAcct').onclick = async () =>{
   try {
     await api(`/api/instances/${viewName}/roblox-account`, {method:'POST', body: JSON.stringify({clear:true})});
     $('acctUser').value = ''; $('acctPass').value = ''; $('acctAuto').checked = false;
-    $('acctMsg').textContent = 'Cleared.';
-  } catch(e){ $('acctMsg').textContent = 'Clear failed'; }
+    $('acctMsg').textContent = ' Borrado.';
+  } catch(e){ $('acctMsg').textContent = ' No se pudo borrar'; }
 };
-$('btnLogin').onclick = async () => {
-  $('rbxState').textContent = 'Logging into Roblox…';
+$('btnLogin').onclick = async () =>{
+  $('rbxState').textContent = ' Entrando a Roblox…';
   try {
     const r = await api(`/api/instances/${viewName}/roblox-login`, {method:'POST'});
-    $('rbxState').textContent = r.ok ? 'Login sequence sent' : ('Login failed: ' + (r.msg || 'unknown'));
-  } catch(e){ $('rbxState').textContent = 'Login failed'; }
+    $('rbxState').textContent = r.ok ? ' Secuencia de entrada enviada' : (' Falló el inicio: ' + (r.msg || 'desconocido'));
+  } catch(e){ $('rbxState').textContent = ' Falló el inicio'; }
 };
 
 // create modal
-$('btnCreate').onclick = async () => {
+$('btnCreate').onclick = async () =>{
   $('createModal').classList.add('open');
   // populate node dropdown
   try {
     const d = await api('/api/providers');
     const sel = $('fProvider');
-    sel.innerHTML = '<option value="auto">Auto (least loaded)</option><option value="local">Main node (local)</option>';
-    d.providers.forEach(p => {
+    sel.innerHTML = '<option value="auto">Automático (menos cargado)</option><option value="local">Nodo principal (local)</option>';
+    d.providers.forEach(p =>{
       if (p.id === 'local' || !p.online) return;
       const o = document.createElement('option');
       o.value = p.id; o.textContent = p.name + ' (' + p.os + ')';
@@ -675,7 +487,7 @@ $('btnCreate').onclick = async () => {
     });
   } catch(e){}
 };
-$('btnCancelCreate').onclick = () => $('createModal').classList.remove('open');
+$('btnCancelCreate').onclick = () =>$('createModal').classList.remove('open');
 
 // ---- fleet batch actions: one tap applies start/stop/restart/launch-roblox/
 //      roblox-login to every instance; a progress modal polls the server-side job.
@@ -685,50 +497,50 @@ async function fleetAction(action, label, confirmMsg) {
   let j;
   try {
     j = await api('/api/instances/batch', {method:'POST', body: JSON.stringify({action})});
-  } catch(e) { alert('Fleet ' + label + ' failed: ' + e.message); return; }
-  $('fleetTitle').textContent = 'Fleet: ' + label;
+  } catch(e) { alert('Flota: ' + label + ' falló: ' + e.message); return; }
+  $('fleetTitle').textContent = ' Flota: ' + label;
   $('fleetProg').style.width = '0';
-  $('fleetStatus').textContent = 'Starting… (0/' + j.total + ')';
+  $('fleetStatus').textContent = ' Iniciando… (0/' + j.total + ')';
   $('fleetFails').innerHTML = '';
   $('fleetModal').classList.add('open');
   clearInterval(fleetTimer);
-  fleetTimer = setInterval(async () => {
+  fleetTimer = setInterval(async () =>{
     try {
       const s = await api('/api/instances/batch/' + j.job_id);
       const pct = s.total ? Math.round(100 * s.done / s.total) : 100;
       $('fleetProg').style.width = pct + '%';
-      $('fleetStatus').textContent = s.done + '/' + s.total + ' done';
+      $('fleetStatus').textContent = s.done + '/' + s.total + ' listas';
       if (s.status === 'done') {
         clearInterval(fleetTimer);
         if (s.failed && s.failed.length)
-          $('fleetFails').innerHTML = '<p class="hint" style="color:var(--bad)">Failed: ' + s.failed.map(esc).join(', ') + '</p>';
+          $('fleetFails').innerHTML = '<p class="hint" style="color:var(--bad)">Fallaron: ' + s.failed.map(esc).join(', ') + '</p>';
         else
-          $('fleetStatus').textContent = 'Done — ' + s.total + '/' + s.total + ' ok';
+          $('fleetStatus').textContent = ' Listo — ' + s.total + '/' + s.total + ' bien';
         refresh();
       }
-    } catch(e) { clearInterval(fleetTimer); $('fleetStatus').textContent = 'Error: ' + e.message; }
+    } catch(e) { clearInterval(fleetTimer); $('fleetStatus').textContent = ' Error: ' + e.message; }
   }, 1000);
 }
-$('btnFleetStart').onclick = () => fleetAction('start', 'Start all');
-$('btnFleetStop').onclick = () => fleetAction('stop', 'Stop all', 'Stop ALL instances?');
-$('btnFleetRestart').onclick = () => fleetAction('restart', 'Restart all', 'Restart ALL instances?');
-$('btnFleetRbx').onclick = () => fleetAction('launch-roblox', 'Launch Roblox on all');
-$('btnFleetLogin').onclick = () => fleetAction('roblox-login', 'Log in to Roblox on all',
-  'Log in to Roblox on ALL instances with saved accounts?');
-$('btnFleetClose').onclick = () => { clearInterval(fleetTimer); $('fleetModal').classList.remove('open'); };
+$('btnFleetStart').onclick = () =>fleetAction('start', ' Iniciar todas');
+$('btnFleetStop').onclick = () =>fleetAction('stop', ' Detener todas', '¿Detener TODAS las instancias?');
+$('btnFleetRestart').onclick = () =>fleetAction('restart', ' Reiniciar todas', '¿Reiniciar TODAS las instancias?');
+$('btnFleetRbx').onclick = () =>fleetAction('launch-roblox', ' Abrir Roblox en todas');
+$('btnFleetLogin').onclick = () =>fleetAction('roblox-login', ' Entrar a Roblox en todas',
+  '¿Entrar a Roblox en TODAS las instancias con las cuentas guardadas?');
+$('btnFleetClose').onclick = () =>{ clearInterval(fleetTimer); $('fleetModal').classList.remove('open'); };
 
 // ---- fleet bulk-create: preview a plan (names + RAM/binder headroom), then
 //      fire the async job and reuse the fleet progress modal above.
 let fleetCreatePlan = null;
-$('btnFleetCreate').onclick = async () => {
+$('btnFleetCreate').onclick = async () =>{
   $('fleetCreateModal').classList.add('open');
   $('fcPlan').innerHTML = ''; $('fcErr').textContent = '';
   $('btnDoFleetCreate').disabled = true; fleetCreatePlan = null;
   try {
     const d = await api('/api/providers');
     const sel = $('fcProvider');
-    sel.innerHTML = '<option value="auto">Auto (least loaded)</option><option value="local">Main node (local)</option>';
-    d.providers.forEach(p => {
+    sel.innerHTML = '<option value="auto">Automático (menos cargado)</option><option value="local">Nodo principal (local)</option>';
+    d.providers.forEach(p =>{
       if (p.id === 'local' || !p.online) return;
       const o = document.createElement('option');
       o.value = p.id; o.textContent = p.name + ' (' + p.os + ')';
@@ -736,8 +548,8 @@ $('btnFleetCreate').onclick = async () => {
     });
   } catch(e){}
 };
-$('btnCancelFleetCreate').onclick = () => $('fleetCreateModal').classList.remove('open');
-$('btnFleetPlan').onclick = async () => {
+$('btnCancelFleetCreate').onclick = () =>$('fleetCreateModal').classList.remove('open');
+$('btnFleetPlan').onclick = async () =>{
   $('fcErr').textContent = ''; $('fcPlan').innerHTML = '';
   $('btnDoFleetCreate').disabled = true; fleetCreatePlan = null;
   const body = {
@@ -747,30 +559,30 @@ $('btnFleetPlan').onclick = async () => {
   };
   let p;
   try { p = await api('/api/instances/fleet/plan', {method:'POST', body: JSON.stringify(body)}); }
-  catch(e) { $('fcErr').textContent = 'Plan failed: ' + e.message; return; }
+  catch(e) { $('fcErr').textContent = ' El plan falló: ' + e.message; return; }
   fleetCreatePlan = p;
   const h = p.headroom || {};
   const ramLine = h.host_ram_mb
-    ? `RAM limits: ${h.current_limits_mb} → ${h.new_limits_mb} MB on ${h.host_ram_mb} MB host`
-    : 'RAM limits: host size unknown';
+    ? ` Límites de RAM: ${h.current_limits_mb} → ${h.new_limits_mb} MB en máquina de ${h.host_ram_mb} MB`
+    : ' Límites de RAM: tamaño de máquina desconocido';
   const binderLine = (h.binder_free_triplets === null || h.binder_free_triplets === undefined)
-    ? 'Binder: managed by node agent'
-    : `Binder triplets free: ${h.binder_free_triplets}`;
+    ? 'Binder: lo maneja el agente del nodo'
+    : `Tripletas de binder libres: ${h.binder_free_triplets}`;
   $('fcPlan').innerHTML =
-    `<p class="hint" style="margin:4px 0">Will create <b>${esc(p.total)}</b> on ` +
-    `<b>${esc(p.provider === 'local' ? 'main node' : p.provider)}</b>: ` +
+    `<p class="hint" style="margin:4px 0">Se crearán <b>${esc(p.total)}</b>en ` +
+    `<b>${esc(p.provider === 'local' ? 'nodo principal' : p.provider)}</b>: ` +
     esc(p.names.slice(0, 8).join(', ')) +
-    (p.names.length > 8 ? esc(', … +' + (p.names.length - 8) + ' more') : '') + `</p>` +
+    (p.names.length >8 ? esc(', … +' + (p.names.length - 8) + ' más') : '') + `</p>` +
     `<p class="hint" style="margin:4px 0">${esc(ramLine)} · ${esc(binderLine)}</p>` +
-    (h.warning ? `<p class="hint" style="margin:4px 0; color:var(--bad)">⚠ ${esc(h.warning)}</p>` : '');
+    (h.warning ? `<p class="hint" style="margin:4px 0; color:var(--bad)">${esc(h.warning)}</p>` : '');
   $('btnDoFleetCreate').disabled = false;
-  $('btnDoFleetCreate').innerHTML = `<i class="ri-add-line"></i>Create ${p.total} instances`;
+  $('btnDoFleetCreate').innerHTML = `<i class="ri-add-line"></i>Crear ${p.total} instancias`;
 };
-$('btnDoFleetCreate').onclick = async () => {
+$('btnDoFleetCreate').onclick = async () =>{
   if (!fleetCreatePlan) return;
   const p = fleetCreatePlan;
   const warn = (p.headroom && p.headroom.warning) ? ('\n\n' + p.headroom.warning) : '';
-  if (!confirm(`Create ${p.total} instances (${p.names[0]} … ${p.names[p.names.length-1]})?` + warn)) return;
+  if (!confirm(`¿Crear ${p.total} instancias (${p.names[0]} … ${p.names[p.names.length-1]})?` + warn)) return;
   $('fcErr').textContent = '';
   let j;
   try {
@@ -778,16 +590,16 @@ $('btnDoFleetCreate').onclick = async () => {
       prefix: p.prefix, count: p.total, cpus: p.cpus,
       memory_mb: p.memory_mb, provider: p.provider,
     })});
-  } catch(e) { $('fcErr').textContent = 'Create failed: ' + e.message; return; }
+  } catch(e) { $('fcErr').textContent = ' La creación falló: ' + e.message; return; }
   $('fleetCreateModal').classList.remove('open');
   // reuse the fleet progress modal
-  $('fleetTitle').textContent = 'Fleet: Create ' + j.total + ' instances';
+  $('fleetTitle').textContent = ' Flota: Crear ' + j.total + ' instancias';
   $('fleetProg').style.width = '0';
-  $('fleetStatus').textContent = 'Starting… (0/' + j.total + ')';
+  $('fleetStatus').textContent = ' Iniciando… (0/' + j.total + ')';
   $('fleetFails').innerHTML = '';
   $('fleetModal').classList.add('open');
   clearInterval(fleetTimer);
-  fleetTimer = setInterval(async () => {
+  fleetTimer = setInterval(async () =>{
     try {
       const s = await api('/api/instances/batch/' + j.job_id);
       const pct = s.total ? Math.round(100 * s.done / s.total) : 100;
@@ -798,65 +610,65 @@ $('btnDoFleetCreate').onclick = async () => {
         if (s.failed && s.failed.length)
           $('fleetFails').innerHTML = '<p class="hint" style="color:var(--bad)">Failed: ' + s.failed.map(esc).join(', ') + '</p>';
         else
-          $('fleetStatus').textContent = 'Done — ' + s.total + '/' + s.total + ' created';
+          $('fleetStatus').textContent = ' Listo — ' + s.total + '/' + s.total + ' creadas';
         refresh();
       }
-    } catch(e) { clearInterval(fleetTimer); $('fleetStatus').textContent = 'Error: ' + e.message; }
+    } catch(e) { clearInterval(fleetTimer); $('fleetStatus').textContent = ' Error: ' + e.message; }
   }, 1000);
 };
 
 // ---- bulk Roblox account import: paste "name,username,password[,auto]"
 //      lines for the whole fleet; per-line results, coverage in the fleet bar.
 function renderAcctLoginRes(s) {
-  const rows = Object.entries(s.accounts || {}).filter(([,a]) => a.login_ts).map(([n,a]) => {
+  const rows = Object.entries(s.accounts || {}).filter(([,a]) =>a.login_ts).map(([n,a]) =>{
     const when = new Date(a.login_ts*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     const cls = a.login_ok ? 'var(--ok)' : 'var(--bad)';
-    const mark = a.login_ok ? '✓' : '⚠';
+    const mark = a.login_ok ? '' : '';
     const detail = a.login_ok ? (when + ' · ' + (a.login_by||'manual'))
-                              : ((a.login_reason||'failed') + ' · ' + (a.login_by||'manual'));
-    return `<div><span style="color:${cls}">${mark}</span> <b>${esc(n)}</b> <span class="hint">${esc(detail)}</span></div>`;
+                              : ((a.login_reason||'falló') + ' · ' + (a.login_by||'manual'));
+    return `<div><span style="color:${cls}">${mark}</span><b>${esc(n)}</b><span class="hint">${esc(detail)}</span></div>`;
   });
   $('acctLoginRes').innerHTML = rows.length
-    ? '<div class="hint" style="margin-bottom:4px">Last login results:</div>' + rows.join('')
+    ? '<div class="hint" style="margin-bottom:4px">Últimos inicios de sesión:</div>' + rows.join('')
     : '';
 }
 async function updateAcctCov() {
   try {
     const s = await api('/api/roblox-accounts');
-    $('acctCov').textContent = s.covered + '/' + s.total + ' have accounts · ' + s.logged_in + ' logged in';
-    $('acctBulkCov').textContent = 'Coverage: ' + s.covered + '/' + s.total +
-      ' instances have credentials (' + s.logged_in + ' logged in). One line per instance:';
+    $('acctCov').textContent = s.covered + '/' + s.total + '  tienen cuentas · ' + s.logged_in + '  con sesión';
+    $('acctBulkCov').textContent = ' Cobertura: ' + s.covered + '/' + s.total +
+      ' instancias tienen credenciales (' + s.logged_in + ' con sesión).  Una línea por instancia:';
     renderAcctLoginRes(s);
   } catch(e) { /* keep old */ }
 }
-$('btnAccounts').onclick = async () => {
+$('btnAccounts').onclick = async () =>{
   $('acctBulkText').value = '';
   $('acctBulkAuto').checked = false;
   $('acctBulkRes').innerHTML = '';
   $('acctBulkModal').classList.add('open');
   await updateAcctCov();
 };
-$('btnCancelAcctBulk').onclick = () => $('acctBulkModal').classList.remove('open');
-$('btnDoAcctBulk').onclick = async () => {
+$('btnCancelAcctBulk').onclick = () =>$('acctBulkModal').classList.remove('open');
+$('btnDoAcctBulk').onclick = async () =>{
   const body = {text: $('acctBulkText').value,
                 force_auto: $('acctBulkAuto').checked};
   let r;
   try { r = await api('/api/roblox-accounts/bulk', {method:'POST', body: JSON.stringify(body)}); }
-  catch(e) { $('acctBulkRes').innerHTML = '<p class="hint" style="color:var(--bad)">Import failed: ' + esc(e.message) + '</p>'; return; }
+  catch(e) { $('acctBulkRes').innerHTML = '<p class="hint" style="color:var(--bad)">Importación falló: ' + esc(e.message) + '</p>'; return; }
   let html = '';
   if (r.saved && r.saved.length)
-    html += '<p class="hint" style="color:var(--ok)">Saved: ' + r.saved.map(esc).join(', ') + '</p>';
+    html += '<p class="hint" style="color:var(--ok)">Guardadas: ' + r.saved.map(esc).join(', ') + '</p>';
   const probs = (r.failed||[]).concat(r.line_errors||[]);
   if (probs.length)
-    html += '<p class="hint" style="color:var(--bad)">Skipped:<br>' +
-      probs.map(p => esc((p.name || ('line ' + p.line)) + ': ' + p.error)).join('<br>') + '</p>';
+    html += '<p class="hint" style="color:var(--bad)">Omitidas:<br>' +
+      probs.map(p =>esc((p.name || ('línea ' + p.line)) + ': ' + p.error)).join('<br>') + '</p>';
   if (!r.saved.length && !probs.length)
-    html = '<p class="hint">Nothing to import.</p>';
+    html = '<p class="hint">Nada que importar.</p>';
   $('acctBulkRes').innerHTML = html;
   $('acctBulkText').value = '';
   updateAcctCov();
 };
-$('btnDoCreate').onclick = async () => {
+$('btnDoCreate').onclick = async () =>{
   $('cerr').textContent = '';
   const body = {name:$('fName').value.trim(), cpus:parseFloat($('fCpus').value),
                 memory_mb:parseInt($('fRam').value), ip:$('fIp').value.trim(),
@@ -868,84 +680,84 @@ $('btnDoCreate').onclick = async () => {
 };
 
 // nodes modal
-$('btnProviders').onclick = () => { $('provModal').classList.add('open'); refreshProviders(); };
-$('btnCloseProv').onclick = () => $('provModal').classList.remove('open');
+$('btnProviders').onclick = () =>{ $('provModal').classList.add('open'); refreshProviders(); };
+$('btnCloseProv').onclick = () =>$('provModal').classList.remove('open');
 async function refreshProviders(){
   try {
     const d = await api('/api/providers');
     let counts = {};
     try {
       const {instances} = await api('/api/instances');
-      instances.forEach(i => {
+      instances.forEach(i =>{
         const pid = i.provider || 'local';
         counts[pid] = (counts[pid] || 0) + 1;
       });
     } catch(e){}
     const el = $('provList');
     el.innerHTML = '';
-    d.providers.forEach(p => {
+    d.providers.forEach(p =>{
       const s = p.stats || {};
       const ram = s.ram_total_mb ? (s.ram_percent + '% (' + (s.ram_used_mb/1024).toFixed(1) + '/' + (s.ram_total_mb/1024).toFixed(1) + ' GB)') : '—';
       const n = counts[p.id] || 0;
-      const icount = '<span style="font-size:11px;color:var(--dim)"><i class="ri-stack-line"></i>' + n + ' instance' + (n === 1 ? '' : 's') + '</span> ';
+      const icount = '<span style="font-size:11px;color:var(--dim)"><i class="ri-stack-line"></i>' + n + ' instancia' + (n === 1 ? '' : 's') + '</span>';
       const label = p.id === 'local' ? 'rbx' : 'srt';
       const swd = (p.selfwatch && p.selfwatch.degraded) || {};
       const dnames = Object.keys(swd);
-      const attn = dnames.length ? '<span style="font-size:11px;color:var(--bad)" title="' + esc(swd[dnames[0]]) + '">⚠ needs attention (' + dnames.length + ')</span> ' : '';
+      const attn = dnames.length ? '<span style="font-size:11px;color:var(--bad)" title="' + esc(swd[dnames[0]]) + '">necesita atención (' + dnames.length + ')</span>' : '';
       const div = document.createElement('div');
       div.className = 'card';
       div.style.cssText = 'margin-bottom:8px;padding:10px';
       div.innerHTML =
-        '<b>' + esc(label) + '</b> ' + icount + attn +
+        '<b>' + esc(label) + '</b>' + icount + attn +
         '<span style="font-size:11px;color:' + (p.online ? 'var(--ok)' : 'var(--bad)') + '">' +
-        '<i class="ri-checkbox-blank-circle-fill" style="font-size:8px"></i> ' + (p.online ? 'online' : 'offline') + '</span><br>' +
+        '<i class="ri-checkbox-blank-circle-fill" style="font-size:8px"></i>' + (p.online ? ' en línea' : ' sin conexión') + '</span><br>' +
         '<span class="hint">' + esc(p.os || '') + ' · CPU ' + (s.cpu_percent ?? '—') + '% · RAM ' + ram + '</span>' +
         '<span style="float:right">' +
-        '<button class="ghost" style="font-size:11px" data-info="' + p.id + '"><i class="ri-information-line"></i>Info</button> ' +
-        (p.id !== 'local' ? '<button class="ghost" style="font-size:11px" data-del="' + p.id + '"><i class="ri-delete-bin-line"></i>Remove</button>' : '') +
+        '<button class="ghost" style="font-size:11px" data-info="' + p.id + '"><i class="ri-information-line"></i>ℹ Info</button>' +
+        (p.id !== 'local' ? '<button class="ghost" style="font-size:11px" data-del="' + p.id + '"><i class="ri-delete-bin-line"></i>Quitar</button>' : '') +
         '</span>';
       el.appendChild(div);
       div.dataset.prov = JSON.stringify(p);
     });
-    el.querySelectorAll('[data-info]').forEach(b => b.onclick = () => {
+    el.querySelectorAll('[data-info]').forEach(b =>b.onclick = () =>{
       const p = JSON.parse(b.closest('.card').dataset.prov);
       showProvInfo(p);
     });
-    el.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
-      if (!confirm('Remove this node?')) return;
+    el.querySelectorAll('[data-del]').forEach(b =>b.onclick = async () =>{
+      if (!confirm('¿Quitar este nodo?')) return;
       try { await api('/api/providers/' + b.dataset.del, {method:'DELETE'}); refreshProviders(); }
       catch(e){ alert(e.message); }
     });
   } catch(e){}
 }
-function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){ return String(s||'').replace(/[&<>"]/g, c =>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function showProvInfo(p){
   const s = p.stats || {};
   const added = p.created ? new Date(p.created * 1000).toLocaleString() : '—';
   const seen = p.last_seen ? new Date(p.last_seen * 1000).toLocaleString() : '—';
   const ramGb = s.ram_total_mb ? (s.ram_total_mb/1024).toFixed(1) + ' GB' : '—';
   const ramUsed = s.ram_used_mb ? (s.ram_used_mb/1024).toFixed(1) + ' GB' : '—';
-  $('piTitle').textContent = p.name || 'Node';
+  $('piTitle').textContent = p.name || 'Nodo';
   $('piBody').innerHTML =
-    '<b>Status:</b> <span style="color:' + (p.online ? 'var(--ok)' : 'var(--bad)') + '"><i class="ri-checkbox-blank-circle-fill" style="font-size:8px"></i> ' + (p.online ? 'online' : 'offline') + '</span><br>' +
-    '<b>Hostname:</b> ' + esc(p.hostname || '—') + '<br>' +
-    '<b>System IP:</b> ' + esc(p.ip || '—') + '<br>' +
-    '<b>OS:</b> ' + esc(p.os || '—') + '<br>' +
-    '<b>Agent version:</b> ' + esc(p.version || '—') + '<br>' +
+    '<b>Estado:</b><span style="color:' + (p.online ? 'var(--ok)' : 'var(--bad)') + '"><i class="ri-checkbox-blank-circle-fill" style="font-size:8px"></i>' + (p.online ? ' en línea' : ' sin conexión') + '</span><br>' +
+    '<b>Nombre:</b>' + esc(p.hostname || '—') + '<br>' +
+    '<b>IP del sistema:</b>' + esc(p.ip || '—') + '<br>' +
+    '<b>Sistema:</b>' + esc(p.os || '—') + '<br>' +
+    '<b>Versión del agente:</b>' + esc(p.version || '—') + '<br>' +
     (p.selfwatch && (p.selfwatch.recoveries || Object.keys(p.selfwatch.degraded || {}).length)
-      ? '<b>Auto-recoveries:</b> ' + (p.selfwatch.recoveries || 0) +
-        (Object.keys(p.selfwatch.degraded || {}).length ? ' <span style="color:var(--bad)">⚠ ' + Object.keys(p.selfwatch.degraded).length + ' instance(s) need attention</span>' : '') + '<br>' : '') +
-    '<b>Date added:</b> ' + esc(added) + '<br>' +
-    '<b>Last seen:</b> ' + esc(seen) + '<br><br>' +
-    '<b>CPU cores:</b> ' + (s.cpu_count ?? '—') + '<br>' +
-    '<b>CPU usage:</b> ' + (s.cpu_percent ?? '—') + '%<br>' +
-    '<b>Total RAM:</b> ' + ramGb + '<br>' +
-    '<b>RAM used:</b> ' + ramUsed + (s.ram_percent != null ? ' (' + s.ram_percent + '%)' : '') + '<br>' +
-    '<b>Agent URL:</b> <span class="hint">' + esc(p.url || '—') + '</span><br>' +
-    '<b>Node ID:</b> <span class="hint">' + esc(p.id || '') + '</span>';
+      ? '<b>Recuperaciones automáticas:</b>' + (p.selfwatch.recoveries || 0) +
+        (Object.keys(p.selfwatch.degraded || {}).length ? ' <span style="color:var(--bad)">' + Object.keys(p.selfwatch.degraded).length + ' instancia(s) necesitan atención</span>' : '') + '<br>' : '') +
+    '<b>Agregado:</b>' + esc(added) + '<br>' +
+    '<b>Visto:</b>' + esc(seen) + '<br><br>' +
+    '<b>Núcleos CPU:</b>' + (s.cpu_count ?? '—') + '<br>' +
+    '<b>Uso de CPU:</b>' + (s.cpu_percent ?? '—') + '%<br>' +
+    '<b>RAM total:</b>' + ramGb + '<br>' +
+    '<b>RAM usada:</b>' + ramUsed + (s.ram_percent != null ? ' (' + s.ram_percent + '%)' : '') + '<br>' +
+    '<b>URL del agente:</b><span class="hint">' + esc(p.url || '—') + '</span><br>' +
+    '<b>ID del nodo:</b><span class="hint">' + esc(p.id || '') + '</span>';
   $('provInfoModal').classList.add('open');
 }
-$('btnClosePi').onclick = () => $('provInfoModal').classList.remove('open');
+$('btnClosePi').onclick = () =>$('provInfoModal').classList.remove('open');
 function fillJoinBox(tok) {
   const base = location.origin;
   $('joinSh').value = `curl -sSL -H "X-Join-Token: ${tok}" ${base}/api/install/install-wing.sh -o /tmp/wing.sh && sudo bash /tmp/wing.sh`;
@@ -953,25 +765,25 @@ function fillJoinBox(tok) {
   $('joinCmd').value = 'curl.exe -sSL --fail -H "X-Join-Token: ' + tok + '" ' + base + '/api/install/install-wing.bat -o %TEMP%\\wing.bat & (findstr /b "@echo off" %TEMP%\\wing.bat >nul && (powershell -WindowStyle Hidden -Command "Start-Process \'%TEMP%\\wing.bat\' -WindowStyle Hidden" & exit) || (echo ERROR: download failed - check token & pause))';
   $('joinBox').classList.remove('hidden');
 }
-$('btnAddProv').onclick = async () => {
+$('btnAddProv').onclick = async () =>{
   try {
     const d = await api('/api/providers/static-token');
     fillJoinBox(d.join_token);
   } catch(e){ alert(e.message); }
 };
-$('regenToken').onclick = async (e) => {
+$('regenToken').onclick = async (e) =>{
   e.preventDefault();
-  if (!confirm('Regenerate the static join token? Old install commands will stop working.')) return;
+  if (!confirm('¿Regenerar el token fijo? Los comandos de instalación viejos dejarán de funcionar.')) return;
   try {
     const d = await api('/api/providers/static-token/regenerate', {method:'POST'});
     fillJoinBox(d.join_token);
   } catch(e){ alert(e.message); }
 };
-$('copySh').onclick = () => { $('joinSh').select(); document.execCommand('copy'); };
-$('copyBat').onclick = () => { $('joinBat').select(); document.execCommand('copy'); };
-$('copyCmd').onclick = () => { $('joinCmd').select(); document.execCommand('copy'); };
+$('copySh').onclick = () =>{ $('joinSh').select(); document.execCommand('copy'); };
+$('copyBat').onclick = () =>{ $('joinBat').select(); document.execCommand('copy'); };
+$('copyCmd').onclick = () =>{ $('joinCmd').select(); document.execCommand('copy'); };
 let installLogTimer = null;
-$('btnInstallLog').onclick = async () => {
+$('btnInstallLog').onclick = async () =>{
   const box = $('installLogBox');
   box.classList.toggle('hidden');
   if (box.classList.contains('hidden')) {
@@ -979,25 +791,25 @@ $('btnInstallLog').onclick = async () => {
     installLogTimer = null;
     return;
   }
-  const load = async () => {
+  const load = async () =>{
     try {
       const d = await api('/api/providers/install-progress');
       window._lastAttempts = d.attempts || [];
       const el = $('installLogList');
       if (!d.attempts || !d.attempts.length) {
-        el.innerHTML = '<p class="hint">No installation attempts yet.</p>';
+        el.innerHTML = '<p class="hint">Aún no hay intentos de instalación.</p>';
         return;
       }
-      el.innerHTML = d.attempts.map((a, idx) => {
+      el.innerHTML = d.attempts.map((a, idx) =>{
         const ago = Math.round((Date.now()/1000 - a.updated_at));
         const color = a.stage === 'done' ? '#4caf50' : a.stage === 'failed' ? '#f44336' : '#ff9800';
-        const logHtml = (a.log||[]).map(l => {
+        const logHtml = (a.log||[]).map(l =>{
           const lc = l.stage === 'done' ? '#4caf50' : l.stage === 'failed' ? '#f44336' : '#ff9800';
           const pctMatch = (l.message||'').match(/(\d+)%/);
           const bar = pctMatch ? `<div style="background:#333;border-radius:3px;margin:3px 0 3px 12px;height:8px;width:80%"><div style="background:#2196F3;height:8px;border-radius:3px;width:${pctMatch[1]}%"></div></div>` : '';
-          return `<div style="margin-left:12px;padding:2px 0"><span style="color:${lc}"><i class="ri-arrow-right-s-line"></i>${esc(l.stage)}</span> <span style="color:#aaa">${esc(l.message||'')}</span>${bar}</div>`;
+          return `<div style="margin-left:12px;padding:2px 0"><span style="color:${lc}"><i class="ri-arrow-right-s-line"></i>${esc(l.stage)}</span><span style="color:#aaa">${esc(l.message||'')}</span>${bar}</div>`;
         }).join('');
-        return `<div style="padding:6px;border-bottom:1px solid #333"><span style="color:${color};font-weight:bold">${esc(a.stage)}</span> — ${esc(a.hostname||a.ip||'?')} (${esc(a.os||'?')}) <button class="ghost" style="font-size:10px;padding:2px 6px" onclick="copyAttempt(${idx})">copy</button><br><span style="color:#555">${ago}s ago</span>${logHtml}</div>`;
+        return `<div style="padding:6px;border-bottom:1px solid #333"><span style="color:${color};font-weight:bold">${esc(a.stage)}</span>— ${esc(a.hostname||a.ip||'?')} (${esc(a.os||'?')}) <button class="ghost" style="font-size:10px;padding:2px 6px" onclick="copyAttempt(${idx})">copiar</button><br><span style="color:#555">hace ${ago}s</span>${logHtml}</div>`;
       }).join('');
     } catch(e){}
   };
@@ -1005,21 +817,21 @@ $('btnInstallLog').onclick = async () => {
   installLogTimer = setInterval(load, 3000);
 };
 
-$('btnCopyLogs').onclick = async () => {
+$('btnCopyLogs').onclick = async () =>{
   const atts = window._lastAttempts || [];
   if (!atts.length) return;
-  const txt = atts.map(a => {
+  const txt = atts.map(a =>{
     const ago = Math.round((Date.now()/1000 - a.updated_at));
     const lines = [`${a.stage} — ${a.hostname||a.ip||'?'} (${a.os||'?'}) [${ago}s ago]`];
-    (a.log||[]).forEach(l => {
+    (a.log||[]).forEach(l =>{
       const lago = Math.round((Date.now()/1000 - l.at));
-      lines.push(`  > ${l.stage} [${lago}s ago]: ${l.message||''}`);
+      lines.push(`  >${l.stage} [${lago}s ago]: ${l.message||''}`);
     });
     return lines.join('\n');
   }).join('\n\n');
   try {
     await navigator.clipboard.writeText(txt);
-    $('btnCopyLogs').textContent = 'Copied!';
+    $('btnCopyLogs').textContent = '¡Copiado!';
   } catch(e) {
     const ta = document.createElement('textarea');
     ta.value = txt;
@@ -1029,25 +841,25 @@ $('btnCopyLogs').onclick = async () => {
     document.body.removeChild(ta);
     $('btnCopyLogs').textContent = 'Copied!';
   }
-  setTimeout(() => $('btnCopyLogs').textContent = 'Copy all logs', 2000);
+  setTimeout(() =>$('btnCopyLogs').textContent = ' Copiar registros', 2000);
 };
 
-$('btnClearLogs').onclick = async () => {
-  if (!confirm('Clear all install logs?')) return;
+$('btnClearLogs').onclick = async () =>{
+  if (!confirm('¿Borrar todos los registros de instalación?')) return;
   await api('/api/providers/install-progress', {method: 'DELETE'});
   window._lastAttempts = [];
-  $('installLogList').innerHTML = '<p class="hint">No installation attempts yet.</p>';
+  $('installLogList').innerHTML = '<p class="hint">Aún no hay intentos de instalación.</p>';
 };
 
-window.copyAttempt = async (idx) => {
+window.copyAttempt = async (idx) =>{
   const atts = window._lastAttempts || [];
   const a = atts[idx];
   if (!a) return;
   const ago = Math.round((Date.now()/1000 - a.updated_at));
   const lines = [`${a.stage} — ${a.hostname||a.ip||'?'} (${a.os||'?'}) [${ago}s ago]`];
-  (a.log||[]).forEach(l => {
+  (a.log||[]).forEach(l =>{
     const lago = Math.round((Date.now()/1000 - l.at));
-    lines.push(`  > ${l.stage} [${lago}s ago]: ${l.message||''}`);
+    lines.push(`  >${l.stage} [${lago}s ago]: ${l.message||''}`);
   });
   const txt = lines.join('\n');
   try {
@@ -1071,22 +883,22 @@ async function doLogin(){
       body:JSON.stringify({password:$('pw').value})});
   } catch(e){
     // Network-level failure (offline, tunnel down, DNS) — NOT a wrong password.
-    $('err').textContent = 'Connection failed — check your network and try again.';
+    $('err').textContent = ' Sin conexión — revisa tu red e intenta de nuevo.';
     return;
   }
   let j = null;
   try { j = await r.json(); } catch(e){}
   if (r.status === 429) {
     // Login rate limit (10 failed attempts/min per IP) — NOT a wrong password.
-    $('err').textContent = 'Too many attempts — wait a minute and try again.';
+    $('err').textContent = ' Demasiados intentos — espera un minuto e intenta de nuevo.';
     return;
   }
   if (r.status === 401 || (j && !j.token)) {
-    $('err').textContent = 'Wrong password.';
+    $('err').textContent = ' Contraseña incorrecta.';
     return;
   }
   if (!r.ok || !j || !j.token) {
-    $('err').textContent = 'Server error (' + r.status + ') — try again in a moment.';
+    $('err').textContent = ' Error del servidor (' + r.status + ') — intenta en un momento.';
     return;
   }
   saveToken(j.token);
@@ -1098,15 +910,13 @@ async function updateHostStats(){
     $('statCpu').textContent = s.cpu_percent + '%';
     $('statRam').textContent = s.ram_percent + '% (' + (s.ram_used_mb/1024).toFixed(1) + '/' + (s.ram_total_mb/1024).toFixed(1) + ' GB)';
     // Color-code: warn if high
-    $('statCpu').style.color = s.cpu_percent > 80 ? 'var(--warn)' : 'var(--txt)';
-    $('statRam').style.color = s.ram_percent > 85 ? 'var(--warn)' : 'var(--txt)';
+    $('statCpu').style.color = s.cpu_percent >80 ? 'var(--warn)' : 'var(--txt)';
+    $('statRam').style.color = s.ram_percent >85 ? 'var(--warn)' : 'var(--txt)';
   } catch(e){}
 }
 function showDash(){ $('login').classList.add('hidden'); $('dash').classList.remove('hidden'); $('topbar').classList.remove('hidden'); $('hostStats').classList.remove('hidden'); refresh(); updateHostStats(); setInterval(refresh, 10000); setInterval(updateHostStats, 5000); }
 $('btnLogin').onclick = doLogin;
-$('pw').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+$('pw').addEventListener('keydown', e =>{ if (e.key==='Enter') doLogin(); });
 $('btnLogout').onclick = logout;
 if (token) showDash();
-</script>
-</body>
-</html>
+</script></body></html>
