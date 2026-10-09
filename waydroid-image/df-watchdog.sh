@@ -76,10 +76,12 @@
 #   can grow to tens of GB — 69G was observed 2026-10-08, starving the disk
 #   and plausibly preventing new Android boots. The v6 disk auto-recovery
 #   can't touch container logs (only dangling images + build cache), so this
-#   section trims any *-json.log over 500MB down to its last 100MB, IN PLACE
+#   section trims any *-json.log over 1GB down to its last 1GB, IN PLACE
 #   (copytruncate: same inode, dockerd's open fd stays valid, logging
 #   continues; writes past the new EOF are sparse holes, so disk usage really
-#   drops). The last 100MB is always kept for failed-boot post-mortems.
+#   drops). Thresholds match Penta's 2026-10-09 instruction ("trim every
+#   hour, keep last 1GB"); the minute-cron enforces it continuously instead
+#   of hourly. The last 1GB is always kept for failed-boot post-mortems.
 #   Instance data volumes are never touched. Self-limiting: a trimmed log
 #   stays under the threshold until it regrows, so no storm budget is needed.
 PINNED_ROBLOX="${DF_PINNED_ROBLOX:-2.740.931}"
@@ -415,10 +417,12 @@ fi
 # Docker's json-file driver never rotates container logs by default. Each
 # instance container's *-json.log captures ALL Waydroid session stdout and
 # can grow to tens of GB (69G observed 2026-10-08). Trim in place to the
-# last 100MB (copytruncate keeps the same inode, so dockerd's open fd stays
-# valid and logging continues). Never touches instance data volumes.
-TRIM_MAX="${DF_LOG_TRIM_MAX:-524288000}"
-TRIM_KEEP="${DF_LOG_TRIM_KEEP:-104857600}"
+# last 1GB (copytruncate keeps the same inode, so dockerd's open fd stays
+# valid and logging continues). Thresholds follow Penta's 2026-10-09
+# instruction ("trim every hour, keep last 1GB"); the minute-cron enforces
+# it continuously. Never touches instance data volumes.
+TRIM_MAX="${DF_LOG_TRIM_MAX:-1073741824}"
+TRIM_KEEP="${DF_LOG_TRIM_KEEP:-1073741824}"
 TRIM_GLOB="${DF_LOG_GLOB:-/var/lib/docker/containers/*/*-json.log}"
 for _jl in $TRIM_GLOB; do
   [ -f "$_jl" ] || continue
