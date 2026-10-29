@@ -1,0 +1,7 @@
+# Staged snapshots in this package -> canonical repo sources (repo-relative).
+# audit-queue.sh fails the deploy when a snapshot drifts from its canonical.
+# NOTE: deploy-all.sh deploys manager/app.py and wing/agent.py directly from
+# the repo (these snapshots exist for reference/testing only); keep them
+# byte-identical anyway so nothing stale is ever inspected or shipped.
+pending-deploy/remote-autologin/app.py=manager/app.py
+pending-deploy/remote-autologin/agent.py=wing/agent.py

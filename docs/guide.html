@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Jerusalem 1.0 Multi-Host System — How It Works</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         max-width: 800px; margin: 40px auto; padding: 0 24px; color: #1a1a1a;
+         line-height: 1.6; }
+  h1 { font-size: 28px; border-bottom: 3px solid #6c5ce7; padding-bottom: 12px; }
+  h2 { font-size: 20px; color: #6c5ce7; margin-top: 36px; }
+  h3 { font-size: 16px; margin-top: 24px; }
+  code { background: #f4f4f8; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 8px;
+        overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  pre .c { color: #7f849c; }
+  .diagram { background: #f8f8fc; border: 1px solid #e0e0ea; border-radius: 8px;
+             padding: 20px; font-family: monospace; font-size: 13px; line-height: 1.7;
+             white-space: pre; overflow-x: auto; }
+  .note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px;
+          border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .warn { background: #ffebee; border-left: 4px solid #f44336; padding: 12px 16px;
+          border-radius: 0 8px 8px 0; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; font-size: 14px; }
+  th { background: #6c5ce7; color: white; }
+  ul { padding-left: 24px; }
+  li { margin-bottom: 8px; }
+  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd;
+            font-size: 12px; color: #888; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+
+<h1>🚜 Jerusalem 1.0 Multi-Host System<br><small style="font-size:16px;color:#666">How It Works — Operator Guide</small></h1>
+<p><b>Version:</b> 2.0 (multi-host) &nbsp;|&nbsp; <b>Date:</b> October 5, 2026</p>
+
+<h2>1. Big Picture</h2>
+<p>Jerusalem 1.0 runs Android instances (each with Roblox) across <b>multiple machines</b>.
+One machine is the <b>Main Node</b> — it hosts the dashboard you use and decides where
+each instance runs. Every other machine is a <b>Provider</b> (worker) running a silent
+background program called the <b>Wing Agent</b>.</p>
+
+<div class="diagram">┌─────────────────────────┐         ┌─────────────────────────┐
+│      MAIN NODE          │         │   PROVIDER PC #1        │
+│   (your main VPS)       │         │   (Linux VPS or PC)     │
+│                       │         │                         │
+│  ┌─────────────────┐  │  HTTPS  │  ┌─────────────────┐    │
+│  │   Dashboard     │  │◄───────►│  │   Wing Agent    │    │
+│  │  (port 8080)    │  │  API    │  │  (port 8090)    │    │
+│  └─────────────────┘  │         │  └────────┬────────┘    │
+│  ┌─────────────────┐  │         │           │ manages     │
+│  │  Orchestrator   │──┼─────────┘     ┌─────▼─────┐       │
+│  │  (providers,    │  │               │  Docker   │       │
+│  │   placement)    │  │               │ +Waydroid │       │
+│  └─────────────────┘  │               └───────────┘       │
+└─────────────────────────┘         └─────────────────────────┘
+         ▲                                    ▲
+         │            ┌──────────────────┐    │
+         └────────────│ PROVIDER PC #2   │────┘
+                      │ (Windows PC)     │
+                      │ Wing Agent hidden│
+                      │ (no window)      │
+                      └──────────────────┘</div>
+
+<p><b>Key idea:</b> you only ever touch the dashboard on the main node. The main node
+forwards every action (create, tap, screenshot, delete) to the correct provider PC
+automatically.</p>
+
+<h2>2. Adding a Provider PC</h2>
+<p>In the dashboard, click <b>Providers → + Add provider</b>. You get two one-line
+commands (token expires in 1 hour). Run the matching one on the new machine:</p>
+
+<h3>Linux (run as root)</h3>
+<pre>curl -sSL -H "X-Join-Token: &lt;TOKEN&gt;" http://&lt;MAIN_IP&gt;:8080/api/install/install-wing.sh | sudo bash</pre>
+
+<h3>Windows (run in PowerShell)</h3>
+<pre>powershell -WindowStyle Hidden -Command "curl.exe -sSL -H 'X-Join-Token: &lt;TOKEN&gt;' http://&lt;MAIN_IP&gt;:8080/api/install/install-wing.bat -o $env:TEMP\wing.bat; Start-Process $env:TEMP\wing.bat -WindowStyle Hidden"</pre>
+
+<p>That's it. The script does everything silently:</p>
+<ul>
+  <li><b>Linux:</b> installs Docker, sets up binder (needed by Waydroid), downloads the
+      Android image from the main node (~212 MB), installs the wing agent as a
+      <code>systemd</code> service (starts on boot, restarts if it crashes), registers
+      with the main node. No windows, no prompts.</li>
+  <li><b>Windows:</b> installs Python silently if missing, copies the agent to
+      <code>C:\ProgramData\&lt;random-codename&gt;\</code> (each node gets its own
+      random codename), creates a <b>hidden scheduled task</b>
+      that runs at boot as SYSTEM via <code>pythonw.exe</code> (no console window, ever),
+      opens the firewall port, registers with the main node. Nothing ever appears on screen.</li>
+</ul>
+
+<div class="note"><b>Hidden by design:</b> on Linux the agent is a systemd service with no
+terminal output. On Windows it runs via <code>pythonw.exe</code> (the windowless Python)
+as a SYSTEM scheduled task — no taskbar icon, no console, no popup. The only visible
+trace is a random-codename entry in Task Scheduler.</div>
+
+<h2>3. How a Machine Becomes a Provider</h2>
+<ol>
+  <li>Dashboard generates a <b>one-time join token</b> (valid 1 hour).</li>
+  <li>The install script downloads <code>agent.py</code> from the main node using that token.</li>
+  <li>The script calls <code>POST /api/providers/register</code> with the token, hostname, and OS.</li>
+  <li>The main node verifies the token (and burns it), creates a <b>provider ID</b>
+      (e.g. <code>p_6bba740a3bf3</code>) and a secret <b>agent key</b>, and returns them.</li>
+  <li>The agent saves the key locally and starts its HTTP server on port <code>8090</code>.</li>
+  <li>Every 30 seconds the agent <b>heartbeats</b> to the main node with CPU/RAM stats.
+      If a provider misses heartbeats for 2 minutes, the dashboard marks it offline.</li>
+</ol>
+
+<h2>4. Assigning Instances to PCs</h2>
+<p>When you click <b>+ New instance</b>, the <b>"Run on"</b> dropdown lets you choose:</p>
+<table>
+  <tr><th>Option</th><th>What happens</th></tr>
+  <tr><td><b>Auto (least loaded)</b></td><td>The main node picks the provider (or itself) with the most free RAM that can fit the instance. Best for most cases.</td></tr>
+  <tr><td><b>Main node (local)</b></td><td>Runs on the main VPS, like before.</td></tr>
+  <tr><td><b>A specific provider</b></td><td>Pins the instance to that PC. Only online providers are listed.</td></tr>
+</table>
+<p>Each instance card shows <b>📍 where it runs</b> (e.g. "📍 Main node" or "📍 Office-PC").
+All controls — View, tap, Launch Roblox, Stop, Delete — work identically regardless of
+where the instance lives. The main node proxies them to the right wing agent.</p>
+
+<h2>5. What the Wing Agent Does</h2>
+<p>The agent (<code>agent.py</code>, ~450 lines, Python standard library only — no
+dependencies to install) exposes a small HTTP API that only the main node can call
+(authenticated by the per-provider <b>agent key</b> in the <code>X-Agent-Key</code> header):</p>
+<table>
+  <tr><th>Endpoint</th><th>Purpose</th></tr>
+  <tr><td><code>GET /api/agent/health</code></td><td>Alive check (no auth needed)</td></tr>
+  <tr><td><code>GET /api/agent/stats</code></td><td>CPU %, RAM %, core count</td></tr>
+  <tr><td><code>GET /api/agent/instances</code></td><td>List local Android instances + status</td></tr>
+  <tr><td><code>POST /api/agent/instances</code></td><td>Create instance (Docker + Waydroid + Roblox)</td></tr>
+  <tr><td><code>DELETE /api/agent/instances/&lt;name&gt;</code></td><td>Delete instance + its data</td></tr>
+  <tr><td><code>POST /api/agent/instances/&lt;name&gt;/start|stop</code></td><td>Start/stop container</td></tr>
+  <tr><td><code>POST /api/agent/instances/&lt;name&gt;/input</code></td><td>Tap / key press (instant, via FIFO)</td></tr>
+  <tr><td><code>GET /api/agent/instances/&lt;name&gt;/screenshot</code></td><td>Latest screen PNG</td></tr>
+  <tr><td><code>POST /api/agent/instances/&lt;name&gt;/launch-roblox</code></td><td>Open Roblox</td></tr>
+</table>
+
+<h3>How instances stay fast</h3>
+<ul>
+  <li><b>Instant input:</b> each Android container runs a tiny <i>input daemon</i> that reads
+      commands from a FIFO pipe. Taps go straight into the pipe — no 27-second shell
+      startup delay.</li>
+  <li><b>Live screen:</b> a <i>screencap loop</i> inside each container captures the screen
+      several times per second. The dashboard streams these frames over WebSocket (~9 fps).</li>
+  <li><b>Roblox auto-install:</b> every new instance installs Roblox 2.740.931 (x86_64)
+      automatically during setup — the latest version that runs on these virtual Androids.</li>
+</ul>
+
+<h2>6. Security Model</h2>
+<ul>
+  <li><b>Join tokens</b> are single-use and expire after 1 hour. They only grant the right
+      to download the installer and register once.</li>
+  <li><b>Agent keys</b> are 32-byte random secrets, unique per provider, stored with
+      <code>600</code> permissions. All main→wing calls require the key.</li>
+  <li><b>Dashboard</b> still uses your password (<code>sober</code>) with bearer tokens.</li>
+  <li>Wing agents <b>only accept commands from the main node</b> (key check); anyone without
+      the key gets <code>401 Unauthorized</code>.</li>
+</ul>
+
+<h2>7. Linux vs Windows Providers</h2>
+<table>
+  <tr><th></th><th>Linux provider</th><th>Windows provider</th></tr>
+  <tr><td>Install</td><td><code>.sh</code> via curl (root)</td><td><code>.bat</code> via PowerShell (admin once)</td></tr>
+  <tr><td>Background</td><td>systemd service</td><td>Hidden scheduled task (pythonw.exe)</td></tr>
+  <tr><td>Android runtime</td><td>✅ Waydroid in Docker (full)</td><td>⚠️ Agent ready; Android backend is pluggable — Waydroid needs Linux kernel features, so the Windows runtime is a separate decision (options: WSL2-based or emulator driver)</td></tr>
+  <tr><td>Heartbeat/stats</td><td>✅</td><td>✅</td></tr>
+</table>
+
+<div class="warn"><b>Note on Windows:</b> the Windows wing agent installs silently, registers,
+and reports stats today. Running Android instances on Windows needs a Windows-compatible
+Android runtime — Waydroid itself cannot run on Windows. Tell Penta's assistant which
+route you prefer (WSL2 + Waydroid experimental, or a Windows emulator driven via ADB)
+and the driver can be plugged into the agent's existing API.</div>
+
+<h2>8. Files &amp; Locations</h2>
+<table>
+  <tr><th>Where</th><th>Path</th><th>What</th></tr>
+  <tr><td>Main node</td><td><code>/root/jerusalem/app.py</code></td><td>Dashboard + orchestrator</td></tr>
+  <tr><td>Main node</td><td><code>/root/jerusalem/providers.json</code></td><td>Provider registry + keys</td></tr>
+  <tr><td>Main node</td><td><code>/root/jerusalem/wing-image.tar</code></td><td>Android image served to workers (212 MB)</td></tr>
+  <tr><td>Main node</td><td><code>/root/jerusalem/wing/</code></td><td>agent.py, install-wing.sh, install-wing.bat</td></tr>
+  <tr><td>Linux worker</td><td><code>/root/jerusalem-wing/</code></td><td>agent.py, config.json, .agent_key</td></tr>
+  <tr><td>Windows worker</td><td><code>C:\ProgramData\&lt;random-codename&gt;\</code></td><td>agent.py, config.json, .agent_key</td></tr>
+</table>
+
+<h2>9. Troubleshooting</h2>
+<ul>
+  <li><b>Provider shows offline:</b> check the worker has network access to the main node
+      on port 8080, and that the wing service/task is running
+      (Linux: <code>systemctl status &lt;codename&gt;.service</code>).</li>
+  <li><b>Install script fails:</b> copy the current static join token from the dashboard
+      (Nodes → + Add node) — it does not expire, so a 403 means the token was
+      mistyped, not stale.</li>
+  <li><b>"No free IP on provider":</b> the provider's <code>10.20.0.x</code> range is full
+      (max ~240 instances per provider).</li>
+  <li><b>Instance stuck on "Booting…":</b> the Android container is still starting
+      (takes 1–3 minutes on first boot while Roblox installs).</li>
+</ul>
+
+<div class="footer">
+  Jerusalem 1.0 Multi-Host Operator Guide · Updated October 9, 2026 (renamed from DroidFarm) · Main node: 209.222.10.93:8080
+</div>
+
+</body></html>

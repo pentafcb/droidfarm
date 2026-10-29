@@ -118,9 +118,43 @@ for i in $(seq 1 30); do
 done
 docker info >/dev/null 2>&1 || fail "docker daemon not responding"
 
+# --- wing-loop-devices: install_loop_pool ---
+install_loop_pool() {
+  # Persistent + immediate loop-device pool for the Waydroid fleet
+  # (mirrors the main node install.sh install_loop_pool).
+  # Each booted Waydroid instance consumes ~2 loop devices; a fresh node
+  # exposes only the stock set (8) after reboot. LP_MODPROBE_D /
+  # LP_MODULES_FILE / LP_DEV_DIR override the real paths (tests).
+  local conf_dir="${LP_MODPROBE_D:-/etc/modprobe.d}"
+  local modules_file="${LP_MODULES_FILE:-/etc/modules}"
+  local dev_dir="${LP_DEV_DIR:-/dev}"
+  mkdir -p "$conf_dir" 2>/dev/null || true
+  if ! grep -q "options loop max_loop=" "$conf_dir/loop.conf" 2>/dev/null; then
+    echo "options loop max_loop=64" >> "$conf_dir/loop.conf" 2>/dev/null || true
+  fi
+  if ! grep -qx "loop" "$modules_file" 2>/dev/null; then
+    echo "loop" >> "$modules_file" 2>/dev/null || true
+  fi
+  modprobe loop max_loop=64 2>/dev/null || true
+  local i n=0
+  for i in $(seq 0 63); do
+    if [ ! -e "$dev_dir/loop$i" ]; then
+      mknod "$dev_dir/loop$i" b 7 "$i" 2>/dev/null || true
+    fi
+    [ -e "$dev_dir/loop$i" ] && n=$((n + 1))
+  done
+  if [ "$n" -lt 60 ]; then
+    report "devices" "WARNING: only $n/64 loop devices present - fleet boot capacity limited"
+  else
+    report "devices" "loop device pool ready ($n/64)"
+  fi
+}
+# --- /wing-loop-devices ---
+
 modprobe binder_linux devices="binder0,binder1,binder2,binder3,binder4,binder5,binder6,binder7,binder8,binder9,binder10,binder11,binder12,binder13,binder14,binder15,binder16,binder17,binder18,binder19,binder20,binder21,binder22,binder23,binder24,binder25" 2>/dev/null || true
 mkdir -p /dev/binderfs
 mount -t binder binder /dev/binderfs 2>/dev/null || true
+install_loop_pool
 
 docker network create --subnet=10.20.0.0/16 "$WNAME" 2>/dev/null || true
 
@@ -156,12 +190,20 @@ rm -f /tmp/wing-image.tar
 [ -n "$IMG_OK" ] || fail "could not download android image"
 
 report "agent" "downloading agent"
+# BEGIN agent-download-check
+# A bad join token returns HTTP 403 with a JSON error body, and some
+# proxies serve HTML error pages with a 200. [ -s ] alone would pass either;
+# the marker check (shebang of the real agent.py, same idea as the .bat
+# one-liner @echo off check) fails closed so a bad download can never
+# reach registration.
 for i in $(seq 1 6); do
-  curl -sSL --retry 2 -H "X-Join-Token: $JOIN_TOKEN" "$MAIN_URL/api/install/agent.py" -o "$WDIR/agent.py" \
-    && [ -s "$WDIR/agent.py" ] && break
+  curl -sSL --fail --retry 2 -H "X-Join-Token: $JOIN_TOKEN" "$MAIN_URL/api/install/agent.py" -o "$WDIR/agent.py" \
+    && [ -s "$WDIR/agent.py" ] && head -1 "$WDIR/agent.py" | grep -q '^#!/usr/bin/env python3$' && break
   sleep 10
 done
-[ -s "$WDIR/agent.py" ] || fail "could not download agent"
+[ -s "$WDIR/agent.py" ] && head -1 "$WDIR/agent.py" | grep -q '^#!/usr/bin/env python3$' \
+  || fail "could not download agent - check join token"
+# END agent-download-check
 sed -i "s/__WING_NAME__/$WNAME/g" "$WDIR/agent.py"
 chmod +x "$WDIR/agent.py"
 
