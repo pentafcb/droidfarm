@@ -43,6 +43,12 @@ class H264Encoder:
     def start(self):
         cmd = [
             FFMPEG, "-hide_banner", "-loglevel", "error",
+            # Wall-clock input timestamps: when the broadcaster skips
+            # byte-identical frames (static screen), the encoded stream
+            # keeps correct PTS with real gaps instead of drifting behind
+            # wall-clock time (which would add permanent latency to the
+            # "live" view on every static period).
+            "-use_wallclock_as_timestamps", "1",
             "-f", "rawvideo", "-pix_fmt", "rgb24",
             "-s", f"{self.width}x{self.height}",
             "-framerate", str(self.fps),
@@ -50,6 +56,18 @@ class H264Encoder:
             "-vcodec", "libx264", "-preset", "ultrafast",
             "-tune", "zerolatency", "-pix_fmt", "yuv420p",
             "-g", str(self.gop), "-keyint_min", str(self.gop),
+            # A keyframe at least every 2s of media time: with frag_keyframe
+            # the muxer only emits a fragment on a keyframe, so without this
+            # the broadcaster's static-heartbeat encodes (P-frames) would
+            # buffer unemitted for up to gop/heartbeat seconds and the
+            # dashboard would see no fragments for tens of seconds on a
+            # static screen. During active 20fps streaming the regular
+            # gop interval already keys every 1s, so this changes nothing.
+            "-force_key_frames", "expr:gte(t,n_forced*2)",
+            # Every fed frame is encoded with its own timestamp: the default
+            # vsync would drop/duplicate frames to fit 20fps, which silently
+            # eats burst-written frames once timestamps are wall-clock.
+            "-fps_mode", "passthrough",
             "-f", "mp4",
             "-movflags", "frag_keyframe+empty_moov+default_base_moof",
             "pipe:1",
@@ -175,6 +193,35 @@ def split_mp4_boxes(buf):
     return boxes, buf[off:]
 
 
+def _fragment_has_idr(fragment):
+    """True if an fMP4 fragment's mdat holds an H.264 IDR NAL (type 5).
+
+    Used to cache the most recent random-access fragment so a late
+    subscriber gets instantly-decodable video even when the screen has
+    been static (the broadcaster skips identical frames, so live
+    fragments may be P-frames referencing a long-gone IDR).
+    Best-effort, never raises: unparseable fragments simply aren't cached.
+    """
+    try:
+        boxes, _ = split_mp4_boxes(fragment)
+        for btype, bdata in boxes:
+            if btype != b"mdat":
+                continue
+            # avcC-style length-prefixed NAL units (4-byte big-endian).
+            off, end = 8, len(bdata)
+            while off + 4 <= end:
+                n = int.from_bytes(bdata[off:off + 4], "big")
+                off += 4
+                if n <= 0 or n > 4 * 1024 * 1024 or off + n > end:
+                    break
+                if bdata[off] & 0x1F == 5:  # coded slice of an IDR picture
+                    return True
+                off += n
+    except Exception:
+        pass
+    return False
+
+
 class H264Subscriber:
     """One viewer's tap into a broadcaster.
 
@@ -184,6 +231,23 @@ class H264Subscriber:
     viewer can append them to a MediaSource buffer directly.
     Slow viewers skip ahead (oldest fragments dropped) instead of growing
     unbounded memory or stalling everyone else.
+
+    Init pin (h264-init-pin): the init segment is the ONE chunk the
+    viewer cannot decode without — MSE appendBuffer() of a fragment
+    with no init segment throws, and the dashboard treats that as a
+    fatal H.264 failure and downgrades the viewer to MJPEG for the rest
+    of the session. The old skip-ahead dropped the oldest chunk
+    unconditionally, so a viewer whose socket stalled before its first
+    read (handler-thread delay under load, then >1MB of fragments
+    queued) lost its init segment and was silently downgraded even
+    though the stream itself was healthy. The init chunk is therefore
+    pinned: while it is still queued, skip-ahead evicts the
+    second-oldest chunk instead, and a queue holding only the init
+    segment never evicts at all. The pin releases on the first drain
+    (read() hands the init to the viewer), after which eviction is
+    plain oldest-first again — a mid-stream skip then starts at a
+    P-fragment at worst, and the next IDR (<=1-2s away) re-syncs the
+    decoder without any downgrade.
     """
 
     def __init__(self, init_bytes, max_queue_bytes=1024 * 1024):
@@ -193,9 +257,13 @@ class H264Subscriber:
         self._max = max_queue_bytes
         self._ev = threading.Event()
         self.closed = False
+        # True while the init chunk is still queued (queue head, never
+        # yet drained by read()); cleared on the first drain.
+        self._init_pinned = False
         if init_bytes:
             self._q.append(bytes(init_bytes))
             self._queued += len(init_bytes)
+            self._init_pinned = True
             self._ev.set()
 
     def _push(self, data):
@@ -205,9 +273,16 @@ class H264Subscriber:
             data = bytes(data)
             self._q.append(data)
             self._queued += len(data)
-            # skip-ahead: drop oldest fragments, keep the newest
+            # skip-ahead: drop oldest fragments, keep the newest —
+            # but never the pinned init segment (see class docstring).
+            # Evicting index 1 while pinned keeps [init, newest];
+            # a queue of [init] alone (len == 1) evicts nothing.
             while self._queued > self._max and len(self._q) > 1:
-                old = self._q.popleft()
+                if self._init_pinned:
+                    old = self._q[1]
+                    del self._q[1]
+                else:
+                    old = self._q.popleft()
                 self._queued -= len(old)
             self._ev.set()
 
@@ -221,6 +296,9 @@ class H264Subscriber:
                     data = b"".join(self._q)
                     self._q.clear()
                     self._queued = 0
+                    # The init segment (if it was queued) has now been
+                    # handed to the viewer; the pin is spent.
+                    self._init_pinned = False
                     self._ev.clear()
                     return data
             remaining = end - time.time()
@@ -240,19 +318,34 @@ class H264Broadcaster:
     frame_source() -> (rgb_bytes, w, h) or None, called at fps cadence.
     start(timeout) primes the encoder and waits for the init segment;
     returns False if no frames arrive in time. The loop stops on its own
-    when the encoder dies or when there are no subscribers for
-    idle_timeout seconds. stop() is idempotent.
+    when the encoder dies, when no frames arrive for frameless_timeout
+    seconds (dead screencap loop / unreachable wing node would otherwise
+    spin at fps forever hammering the source with an idle encoder), or
+    when there are no subscribers for idle_timeout seconds.
+    stop() is idempotent.
+
+    Static-skip: a byte-identical frame adds nothing visually, so it is
+    not re-encoded (the libx264 encode is the dominant per-tick cost) —
+    except a heartbeat encode every static_heartbeat seconds, which keeps
+    fragments flowing so the dashboard's 3s stall badge never false-fires.
+    The encoder uses wall-clock input timestamps, so skipped frames leave
+    correct PTS gaps instead of drifting the "live" view behind real time.
+    The most recent IDR fragment is cached and pushed to late subscribers
+    right after the init segment, giving instant video on static screens.
     """
 
     def __init__(self, frame_source, width=480, height=284, fps=20, gop=20,
-                 idle_timeout=10.0, max_queue_bytes=1024 * 1024):
+                 idle_timeout=10.0, frameless_timeout=15.0,
+                 max_queue_bytes=1024 * 1024, static_heartbeat=2.0):
         self._frame_source = frame_source
         self.width = width + (width % 2)
         self.height = height + (height % 2)
         self.fps = fps
         self.gop = gop
         self._idle_timeout = idle_timeout
+        self._frameless_timeout = frameless_timeout
         self._max_queue_bytes = max_queue_bytes
+        self._static_heartbeat = static_heartbeat
         self._enc = None
         self._enc_w = self.width
         self._enc_h = self.height
@@ -266,6 +359,9 @@ class H264Broadcaster:
         self._thread = None
         self._last_unsub = time.time()
         self._stopped = False
+        self._last_encoded = None   # rgb bytes of the last encoded frame
+        self._last_encode_t = 0.0   # wall time of the last encode
+        self._last_idr = None       # most recent IDR-bearing fragment
 
     # -- lifecycle ------------------------------------------------------
     def start(self, timeout=8.0):
@@ -305,11 +401,20 @@ class H264Broadcaster:
             if not enc.write_frame(rgb):
                 break
             self._feed(enc.read_available(timeout=0.05))
+            # Paced writes: the encoder uses wall-clock input timestamps,
+            # so frames written in a tight burst would share near-identical
+            # timestamps and the muxer would drop them. (The _run loop is
+            # paced by its fps tick; only this priming loop needs it.)
+            time.sleep(0.05)
         if self._init is None:
             enc.close()
             self._enc = None
             return False
         self._last_unsub = time.time()
+        # The priming frame is already encoded; the _run loop must not
+        # re-encode it on its first tick when the screen is static.
+        self._last_encoded = rgb
+        self._last_encode_t = time.time()
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name="h264-broadcast")
         self._thread.start()
@@ -325,13 +430,22 @@ class H264Broadcaster:
             return len(self._subs)
 
     def subscribe(self):
-        """Attach a viewer; returns H264Subscriber, or None if dead."""
+        """Attach a viewer; returns H264Subscriber, or None if dead.
+
+        The subscriber's first read() returns the init segment, followed
+        by the most recent IDR fragment when one has been encoded — so a
+        late joiner gets instantly-decodable video even on a static screen
+        (live fragments alone might be P-frames referencing a long-gone
+        IDR). Live fragments follow as usual.
+        """
         with self._lock:
             if not self.running or self._init is None:
                 return None
             sub = H264Subscriber(self._init,
                                  max_queue_bytes=self._max_queue_bytes)
             self._subs.append(sub)
+            if self._last_idr is not None:
+                sub._push(self._last_idr)
             return sub
 
     def unsubscribe(self, sub):
@@ -392,6 +506,9 @@ class H264Broadcaster:
                         self._pre += bdata
                 else:
                     if self._cur:
+                        if _fragment_has_idr(self._cur):
+                            with self._lock:
+                                self._last_idr = self._cur
                         self._fanout(self._cur)
                     self._cur = bdata
             elif self._init is None and not self._cur:
@@ -407,6 +524,12 @@ class H264Broadcaster:
 
     def _run(self):
         interval = 1.0 / self.fps
+        # Frameless guard: with a subscribed viewer but a dead frame source
+        # this loop would spin at fps forever, hammering the source (for
+        # remote instances: an HTTP fetch per tick) while the encoder idles.
+        # Break instead — subscribers are closed, the dashboard falls back
+        # to MJPEG, and a later viewer re-creates the broadcaster.
+        last_frame = time.time()
         try:
             while not self._stop.is_set():
                 t0 = time.time()
@@ -420,11 +543,30 @@ class H264Broadcaster:
                     except (TypeError, ValueError):
                         got = None
                 if got is not None and self._enc is not None:
+                    last_frame = t0
                     if (w, h) != (self._enc_w, self._enc_h):
                         rgb = self._rescale(rgb, w, h,
                                             self._enc_w, self._enc_h)
-                    if rgb is not None and not self._enc.write_frame(rgb):
-                        break  # encoder died
+                    if rgb is not None:
+                        # Static-skip: a byte-identical frame adds nothing
+                        # visually; skip the libx264 encode (the dominant
+                        # per-tick cost). A heartbeat encode every
+                        # static_heartbeat seconds keeps fragments flowing
+                        # (dashboard stall badge stays honest, late joiners
+                        # stay near a fresh fragment). The frameless-guard
+                        # clock above still ticks on every fetched frame.
+                        if (self._last_encoded is None
+                                or rgb != self._last_encoded
+                                or t0 - self._last_encode_t
+                                >= self._static_heartbeat):
+                            if not self._enc.write_frame(rgb):
+                                break  # encoder died
+                            self._last_encoded = rgb
+                            self._last_encode_t = t0
+                        elif not self._enc.alive():
+                            break  # encoder died while idling on static
+                elif time.time() - last_frame > self._frameless_timeout:
+                    break  # frameless guard: no frames for frameless_timeout
                 if self._enc is not None:
                     self._feed(self._enc.read_available(timeout=0))
                 with self._lock:

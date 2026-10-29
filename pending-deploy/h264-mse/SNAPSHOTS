@@ -1,0 +1,6 @@
+# Staged snapshots in this package -> canonical repo sources (repo-relative).
+# audit-queue.sh fails the deploy when a snapshot drifts from its canonical.
+# NOTE: deploy-all.sh deploys manager/h264_stream.py directly from the repo
+# (this snapshot exists for reference/testing only); keep it byte-identical
+# anyway so nothing stale is ever inspected or shipped.
+pending-deploy/h264-mse/h264_stream.py=manager/h264_stream.py
